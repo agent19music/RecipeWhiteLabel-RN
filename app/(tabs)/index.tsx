@@ -1,29 +1,26 @@
+import { Colors } from '@/constants/Colors';
+import { Recipe } from '@/data/types';
+import {
+  getEnhancedFeaturedRecipes,
+  getEnhancedMealsByTimeOfDay,
+  getEnhancedQuickRecipes
+} from '@/data/enhanced-recipes';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
-import { 
-  View, 
-  Text, 
-  ScrollView, 
-  StyleSheet, 
-  TouchableOpacity, 
+import {
   Animated,
   Dimensions,
-  TextInput,
   FlatList,
-  Image
+  Image,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import { Colors } from '@/constants/Colors';
-import { useRouter } from 'expo-router';
-import ModernButton from '@/components/ModernButton';
-import { 
-  Recipe,
-  getMealsByTimeOfDay, 
-  getFeaturedRecipes,
-  eastAfricanBreakfast,
-  eastAfricanLunch,
-  eastAfricanDinner
-} from '@/data/recipes';
 
 const { width } = Dimensions.get('window');
 
@@ -65,15 +62,12 @@ export default function HomeScreen() {
 
   useEffect(() => {
     // Load time-based meals
-    const meals = getMealsByTimeOfDay();
+    const meals = getEnhancedMealsByTimeOfDay();
     setTimeBasedMeals(meals);
-    setFeaturedMeals(getFeaturedRecipes());
+    setFeaturedMeals(getEnhancedFeaturedRecipes());
     
     // Get quick meals (meals under 30 min)
-    const quick = meals.filter(meal => {
-      const minutes = parseInt(meal.time.split(' ')[0]);
-      return minutes <= 30;
-    }).slice(0, 6);
+    const quick = getEnhancedQuickRecipes().slice(0, 6);
     setQuickMeals(quick);
 
     // Start animations
@@ -169,14 +163,18 @@ export default function HomeScreen() {
           ]}
         >
           <View style={styles.headerTop}>
-            <View>
-              <Text style={styles.greeting}>{getGreeting()}</Text>
-              <Text style={styles.userName}>Perfect time for {getMealType().toLowerCase()}</Text>
+            <View style={styles.headerLeft}>
+              <Text style={styles.greeting}>{getGreeting()}!</Text>
+              <Text style={styles.userName}>What would you like to cook today?</Text>
             </View>
-            <TouchableOpacity style={styles.notificationButton}>
-              <Ionicons name="notifications-outline" size={24} color={Colors.black} />
-              <View style={styles.notificationDot} />
-            </TouchableOpacity>
+            <View style={styles.headerActions}>
+              <TouchableOpacity 
+                style={styles.headerButton}
+                onPress={() => router.push('/profile')}
+              >
+                <Ionicons name="person-circle-outline" size={32} color={Colors.text.primary} />
+              </TouchableOpacity>
+            </View>
           </View>
         </Animated.View>
 
@@ -263,21 +261,43 @@ export default function HomeScreen() {
           />
         </View>
 
-        {/* AI Recipe Generator */}
-        <TouchableOpacity 
-          style={styles.aiCard}
-          onPress={() => router.push('/ai')}
-          activeOpacity={0.9}
-        >
-          <View style={styles.aiCardContent}>
-            <MaterialCommunityIcons name="robot-happy" size={40} color={Colors.white} />
-            <View style={styles.aiCardText}>
-              <Text style={styles.aiCardTitle}>AI Recipe Generator</Text>
-              <Text style={styles.aiCardSubtitle}>Create custom recipes with AI</Text>
-            </View>
-            <Ionicons name="arrow-forward" size={24} color={Colors.white} />
+        {/* Quick Access Section */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Explore More</Text>
           </View>
-        </TouchableOpacity>
+          <View style={styles.quickAccessContainer}>
+            <TouchableOpacity 
+              style={styles.largeCard}
+              onPress={() => router.push('/discover')}
+              activeOpacity={0.95}
+            >
+              <View style={styles.largeCardContent}>
+                <Ionicons name="compass" size={40} color={Colors.white} />
+                <View style={styles.largeCardText}>
+                  <Text style={styles.largeCardTitle}>Discover Recipes</Text>
+                  <Text style={styles.largeCardSubtitle}>Browse our full collection</Text>
+                </View>
+                <Ionicons name="arrow-forward" size={24} color={Colors.white} />
+              </View>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={[styles.largeCard, { backgroundColor: '#4ECDC4' }]}
+              onPress={() => router.push('/plan')}
+              activeOpacity={0.95}
+            >
+              <View style={styles.largeCardContent}>
+                <MaterialCommunityIcons name="calendar-month" size={40} color={Colors.white} />
+                <View style={styles.largeCardText}>
+                  <Text style={styles.largeCardTitle}>Meal Planner</Text>
+                  <Text style={styles.largeCardSubtitle}>Plan your weekly meals</Text>
+                </View>
+                <Ionicons name="arrow-forward" size={24} color={Colors.white} />
+              </View>
+            </TouchableOpacity>
+          </View>
+        </View>
 
         <View style={styles.bottomSpacing} />
       </ScrollView>
@@ -496,5 +516,78 @@ const styles = StyleSheet.create({
   },
   bottomSpacing: {
     height: 20,
+  },
+  quickAccessGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    paddingHorizontal: 20,
+    gap: 12,
+  },
+  quickAccessCard: {
+    width: (width - 52) / 2, // 2 cards per row with gaps
+    height: 110,
+    borderRadius: 20,
+    padding: 16,
+    justifyContent: 'space-between',
+    shadowColor: Colors.shadow.medium,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 5,
+  },
+  quickAccessTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: Colors.white,
+    marginTop: 8,
+  },
+  quickAccessSubtitle: {
+    fontSize: 12,
+    color: Colors.white,
+    opacity: 0.85,
+  },
+  headerLeft: {
+    flex: 1,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  headerButton: {
+    padding: 4,
+  },
+  quickAccessContainer: {
+    paddingHorizontal: 20,
+    gap: 12,
+  },
+  largeCard: {
+    backgroundColor: Colors.primary,
+    borderRadius: 20,
+    marginBottom: 12,
+    shadowColor: Colors.shadow.medium,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 5,
+  },
+  largeCardContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 20,
+    gap: 16,
+  },
+  largeCardText: {
+    flex: 1,
+  },
+  largeCardTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: Colors.white,
+    marginBottom: 4,
+  },
+  largeCardSubtitle: {
+    fontSize: 14,
+    color: Colors.white,
+    opacity: 0.9,
   },
 });

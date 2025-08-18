@@ -1,15 +1,15 @@
 import React from 'react';
 import { ScrollView, Text, View } from 'react-native';
-import { theme, useTheme } from '../../../theme';
-import { demoPlan, recipes } from '../../../data/seed';
-import Button from '../../../components/Button';
-import { track } from '../../../utils/analytics';
+import { theme, useTheme } from '@/theme';
+import { demoPlan, recipes } from '@/data/seed';
+import Button from '@/components/Button';
+import { track } from '@/utils/analytics';
 
 export default function Planner(){
   const { palette } = useTheme();
   const plan = demoPlan;
 
-  const estimate = plan.totalEstimatedCostKES;
+  const estimate = plan.totalEstimatedCostKES;  // TODO: fix this
 
   return (
     <ScrollView style={{ flex: 1, backgroundColor: palette.bg }} contentContainerStyle={{ padding: theme.space.lg }}>
@@ -24,7 +24,7 @@ export default function Planner(){
               const rec = recipes.find(r => r.id === m.recipeId);
               return (
                 <View key={i} style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: theme.space.xs }}>
-                  <Text style={{ color: palette.subtext }}>{m.meal}</Text>
+                    <Text style={{ color: palette.subtext }}>{m.mealType}</Text>
                   <Text style={{ color: palette.text, fontWeight: '600' }}>{rec?.title}</Text>
                 </View>
               );

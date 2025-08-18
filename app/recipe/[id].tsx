@@ -1,24 +1,24 @@
-import React, { useState, useRef, useEffect } from 'react';
-import {
-  View,
-  Text,
-  ScrollView,
-  StyleSheet,
-  TouchableOpacity,
-  Image,
-  Animated,
-  Dimensions,
-  StatusBar,
-  Platform,
-} from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons, MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
-import { Colors } from '@/constants/Colors';
+import CookingStepper from '@/components/CookingStepper';
 import ModernButton from '@/components/ModernButton';
+import { Colors } from '@/constants/Colors';
+import { getRecipeById } from '@/data/enhanced-recipes';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
-import { getRecipeById } from '@/data/enhanced-recipes';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import React, { useEffect, useRef, useState } from 'react';
+import {
+  Animated,
+  Dimensions,
+  Image,
+  Platform,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const { width, height } = Dimensions.get('window');
 
@@ -115,14 +115,22 @@ export default function RecipeDetailScreen() {
   const scaleAnim = useRef(new Animated.Value(0.9)).current;
 
   useEffect(() => {
-    // Get recipe details from enhanced recipes
-    const foundRecipe = getRecipeById(id as string);
-    if (foundRecipe) {
-      setRecipe(foundRecipe);
-      if (foundRecipe.servings) {
-        setServings(foundRecipe.servings);
+    // Get recipe details from enhanced recipes (async)
+    const loadRecipe = async () => {
+      try {
+        const foundRecipe = await getRecipeById(id as string);
+        if (foundRecipe) {
+          setRecipe(foundRecipe);
+          // Use details.servings if available, otherwise use servings field
+          const recipeServings = foundRecipe.details?.servings || foundRecipe.servings || 4;
+          setServings(recipeServings);
+        }
+      } catch (error) {
+        console.error('Error loading recipe:', error);
       }
-    }
+    };
+
+    loadRecipe();
 
     // Animate in
     Animated.parallel([
@@ -196,124 +204,141 @@ export default function RecipeDetailScreen() {
 
       {/* Ingredients List */}
       <View style={styles.ingredientsList}>
-        {mockIngredients.map((ingredient, index) => (
-          <Animated.View
-            key={ingredient.id}
-            style={[
-              styles.ingredientItem,
-              {
-                opacity: fadeAnim,
-                transform: [{
-                  translateX: fadeAnim.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [50, 0],
-                  }),
-                }],
-              },
-            ]}
-          >
-            <View style={styles.ingredientAmount}>
-              <Text style={styles.amountText}>{ingredient.amount}</Text>
-            </View>
-            <View style={styles.ingredientInfo}>
-              <Text style={styles.ingredientName}>{ingredient.item}</Text>
-              <Text style={styles.ingredientCategory}>{ingredient.category}</Text>
-            </View>
-            <TouchableOpacity style={styles.checkBox}>
-              <Ionicons name="checkmark-circle-outline" size={24} color={Colors.gray[400]} />
-            </TouchableOpacity>
-          </Animated.View>
-        ))}
+        {(recipe.ingredients || mockIngredients).map((ingredient: any, index: number) => {
+          // Handle both enhanced recipe format and mock format
+          const amount = ingredient.quantity ? 
+            `${ingredient.quantity} ${ingredient.unit || ''}`.trim() : 
+            ingredient.amount;
+          const name = ingredient.name || ingredient.item;
+          const category = ingredient.group || ingredient.category || 'Ingredient';
+          const key = ingredient.id || `ingredient-${index}`;
+          
+          return (
+            <Animated.View
+              key={key}
+              style={[
+                styles.ingredientItem,
+                {
+                  opacity: fadeAnim,
+                  transform: [{
+                    translateX: fadeAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [50, 0],
+                    }),
+                  }],
+                },
+              ]}
+            >
+              <View style={styles.ingredientAmount}>
+                <Text style={styles.amountText}>{amount}</Text>
+              </View>
+              <View style={styles.ingredientInfo}>
+                <Text style={styles.ingredientName}>{name}</Text>
+                {ingredient.note && (
+                  <Text style={styles.ingredientNote}>{ingredient.note}</Text>
+                )}
+                <Text style={styles.ingredientCategory}>{category}</Text>
+              </View>
+              <TouchableOpacity style={styles.checkBox}>
+                <Ionicons name="checkmark-circle-outline" size={24} color={Colors.gray[400]} />
+              </TouchableOpacity>
+            </Animated.View>
+          );
+        })}
       </View>
     </Animated.View>
   );
 
-  const renderSteps = () => (
-    <View style={styles.stepsList}>
-      {mockSteps.map((step, index) => (
-        <Animated.View
-          key={step.id}
-          style={[
-            styles.stepItem,
-            {
-              opacity: fadeAnim,
-              transform: [{
-                translateY: fadeAnim.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [30, 0],
-                }),
-              }],
-            },
-          ]}
-        >
-          <View style={styles.stepNumber}>
-            <Text style={styles.stepNumberText}>{index + 1}</Text>
-          </View>
-          <View style={styles.stepContent}>
-            <View style={styles.stepHeader}>
-              <Text style={styles.stepTitle}>{step.title}</Text>
-              <View style={styles.stepTime}>
-                <Ionicons name="time-outline" size={14} color={Colors.primary} />
-                <Text style={styles.stepTimeText}>{step.time}</Text>
-              </View>
-            </View>
-            <Text style={styles.stepDescription}>{step.description}</Text>
-            {step.tip && (
-              <View style={styles.tipContainer}>
-                <MaterialIcons name="lightbulb-outline" size={16} color={Colors.warning} />
-                <Text style={styles.tipText}>{step.tip}</Text>
-              </View>
-            )}
-          </View>
-        </Animated.View>
-      ))}
-    </View>
-  );
+  const renderSteps = () => {
+    // Convert steps to the format expected by CookingStepper if needed
+    const formattedSteps = recipe.steps || mockSteps.map((step: any) => ({
+      id: step.id,
+      title: step.title,
+      body: step.description,
+      time: step.time ? parseInt(step.time) : undefined,
+      tips: step.tip ? [step.tip] : undefined,
+      imageUrl: step.imageUrl,
+    }));
 
-  const renderNutrition = () => (
-    <View style={styles.nutritionContainer}>
-      <View style={styles.nutritionGrid}>
-        {nutritionData.map((item, index) => (
-          <Animated.View
-            key={item.label}
-            style={[
-              styles.nutritionCard,
-              {
-                opacity: fadeAnim,
-                transform: [{
-                  scale: fadeAnim.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [0.8, 1],
-                  }),
-                }],
-              },
-            ]}
-          >
-            <View style={styles.nutritionCircle}>
-              <Text style={styles.nutritionValue}>{item.value}</Text>
-              <Text style={styles.nutritionUnit}>{item.unit}</Text>
-            </View>
-            <Text style={styles.nutritionLabel}>{item.label}</Text>
-            <View style={styles.nutritionBar}>
-              <View 
-                style={[
-                  styles.nutritionBarFill, 
-                  { width: `${item.percentage}%` }
-                ]} 
-              />
-            </View>
-          </Animated.View>
-        ))}
+    return (
+      <CookingStepper 
+        steps={formattedSteps} 
+        recipeId={recipe.id} 
+        recipeName={recipe.title}
+      />
+    );
+  };
+
+  const renderNutrition = () => {
+    // Use recipe nutrition data if available, otherwise use mock data
+    const nutritionInfo = recipe.nutrition || {};
+    const nutritionItems = [
+      { label: 'Calories', value: nutritionInfo.calories || 520, unit: 'kcal', percentage: ((nutritionInfo.calories || 520) / 2000) * 100 },
+      { label: 'Protein', value: nutritionInfo.protein || 35, unit: 'g', percentage: ((nutritionInfo.protein || 35) / 50) * 100 },
+      { label: 'Carbs', value: nutritionInfo.carbs || 45, unit: 'g', percentage: ((nutritionInfo.carbs || 45) / 300) * 100 },
+      { label: 'Fat', value: nutritionInfo.fat || 18, unit: 'g', percentage: ((nutritionInfo.fat || 18) / 65) * 100 },
+    ];
+    
+    return (
+      <View style={styles.nutritionContainer}>
+        <View style={styles.nutritionGrid}>
+          {nutritionItems.map((item, index) => (
+            <Animated.View
+              key={item.label}
+              style={[
+                styles.nutritionCard,
+                {
+                  opacity: fadeAnim,
+                  transform: [{
+                    scale: fadeAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0.8, 1],
+                    }),
+                  }],
+                },
+              ]}
+            >
+              <View style={styles.nutritionCircle}>
+                <Text style={styles.nutritionValue}>{item.value}</Text>
+                <Text style={styles.nutritionUnit}>{item.unit}</Text>
+              </View>
+              <Text style={styles.nutritionLabel}>{item.label}</Text>
+              <View style={styles.nutritionBar}>
+                <View 
+                  style={[
+                    styles.nutritionBarFill, 
+                    { width: `${Math.min(item.percentage, 100)}%` }
+                  ]} 
+                />
+              </View>
+            </Animated.View>
+          ))}
+        </View>
+        {recipe.nutrition?.fiber && (
+          <View style={styles.additionalNutrition}>
+            <Text style={styles.additionalNutritionText}>Fiber: {recipe.nutrition.fiber}g • Sugar: {recipe.nutrition.sugar || 0}g • Sodium: {recipe.nutrition.sodium || 0}mg</Text>
+          </View>
+        )}
+        <View style={styles.dailyValueNote}>
+          <Text style={styles.dailyValueText}>* Based on a 2,000 calorie diet</Text>
+        </View>
       </View>
-      <View style={styles.dailyValueNote}>
-        <Text style={styles.dailyValueText}>* Based on a 2,000 calorie diet</Text>
-      </View>
-    </View>
-  );
+    );
+  };
 
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="light-content" />
+    <>
+      <Stack.Screen 
+        options={{ 
+          title: recipe?.title || 'Recipe',
+          headerShown: true,
+          headerStyle: { backgroundColor: Colors.white },
+          headerTintColor: Colors.text.primary,
+          headerTitleStyle: { fontWeight: '600' },
+        }} 
+      />
+      <View style={styles.container}>
+        <StatusBar barStyle="light-content" />
       
       {/* Header Image with Parallax */}
       <Animated.View 
@@ -387,42 +412,48 @@ export default function RecipeDetailScreen() {
             ]}
           >
             <View style={styles.cuisineBadge}>
-              <Text style={styles.cuisineText}>{recipe.cuisine}</Text>
+              <Text style={styles.cuisineText}>{recipe.details?.cuisine || recipe.cuisine || 'International'}</Text>
             </View>
             <Text style={styles.recipeTitle}>{recipe.title}</Text>
+            {recipe.description && (
+              <Text style={styles.recipeDescription}>{recipe.description}</Text>
+            )}
             
             {/* Quick Stats */}
             <View style={styles.statsRow}>
               <View style={styles.statItem}>
                 <Ionicons name="time-outline" size={16} color={Colors.gray[600]} />
-                <Text style={styles.statText}>{recipe.time}</Text>
+                <Text style={styles.statText}>{recipe.details?.totalTime || recipe.minutes || 30} min</Text>
               </View>
               <View style={styles.statDivider} />
               <View style={styles.statItem}>
                 <Ionicons name="fitness-outline" size={16} color={Colors.gray[600]} />
-                <Text style={styles.statText}>{recipe.difficulty}</Text>
+                <Text style={styles.statText}>{recipe.details?.difficulty || recipe.difficulty || 'Medium'}</Text>
               </View>
               <View style={styles.statDivider} />
               <View style={styles.statItem}>
                 <Ionicons name="flame-outline" size={16} color={Colors.gray[600]} />
-                <Text style={styles.statText}>{recipe.calories}</Text>
+                <Text style={styles.statText}>{recipe.nutrition?.calories || recipe.calories || '350'} cal</Text>
               </View>
             </View>
 
             {/* Rating */}
             <View style={styles.ratingRow}>
               <View style={styles.rating}>
-                {[1, 2, 3, 4, 5].map((star) => (
-                  <Ionicons
-                    key={star}
-                    name={star <= Math.floor(recipe.rating) ? "star" : "star-outline"}
-                    size={18}
-                    color="#FFB800"
-                  />
-                ))}
-                <Text style={styles.ratingText}>{recipe.rating}</Text>
+                {[1, 2, 3, 4, 5].map((star) => {
+                  const rating = recipe.details?.rating || recipe.rating || 4.5;
+                  return (
+                    <Ionicons
+                      key={star}
+                      name={star <= Math.floor(rating) ? "star" : "star-outline"}
+                      size={18}
+                      color="#FFB800"
+                    />
+                  );
+                })}
+                <Text style={styles.ratingText}>{recipe.details?.rating || recipe.rating || 4.5}</Text>
               </View>
-              <Text style={styles.reviewsText}>({recipe.reviews} reviews)</Text>
+              <Text style={styles.reviewsText}>({recipe.details?.ratingCount || recipe.reviews || 120} reviews)</Text>
             </View>
           </Animated.View>
 
@@ -463,17 +494,20 @@ export default function RecipeDetailScreen() {
         </View>
       </Animated.ScrollView>
 
-      {/* Bottom CTA */}
-      <View style={styles.bottomCTA}>
-        <ModernButton
-          title="Start Cooking"
-          onPress={handleStartCooking}
-          variant="primary"
-          size="large"
-          icon={<MaterialCommunityIcons name="chef-hat" size={24} color={Colors.white} />}
-        />
+      {/* Bottom CTA - Only show for non-steps tabs */}
+      {activeTab !== 'steps' && (
+        <View style={styles.bottomCTA}>
+          <ModernButton
+            title="Start Cooking"
+            onPress={handleStartCooking}
+            variant="primary"
+            size="large"
+            icon={<MaterialCommunityIcons name="chef-hat" size={24} color={Colors.white} />}
+          />
+        </View>
+      )}
       </View>
-    </View>
+    </>
   );
 }
 
@@ -565,6 +599,12 @@ const styles = StyleSheet.create({
     fontSize: 28,
     fontWeight: '700',
     color: Colors.text.primary,
+    marginBottom: 8,
+  },
+  recipeDescription: {
+    fontSize: 15,
+    color: Colors.text.secondary,
+    lineHeight: 22,
     marginBottom: 16,
   },
   statsRow: {
@@ -696,6 +736,12 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: Colors.text.tertiary,
   },
+  ingredientNote: {
+    fontSize: 13,
+    color: Colors.text.secondary,
+    fontStyle: 'italic',
+    marginTop: 2,
+  },
   checkBox: {
     padding: 4,
   },
@@ -816,6 +862,15 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: Colors.text.tertiary,
     fontStyle: 'italic',
+  },
+  additionalNutrition: {
+    marginVertical: 10,
+    paddingHorizontal: 10,
+  },
+  additionalNutritionText: {
+    fontSize: 13,
+    color: Colors.text.secondary,
+    textAlign: 'center',
   },
   bottomCTA: {
     position: 'absolute',

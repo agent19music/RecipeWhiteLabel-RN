@@ -1,14 +1,14 @@
 import React, { useRef } from 'react';
-import { 
-  Pressable, 
-  Text, 
-  StyleSheet, 
-  Animated, 
-  GestureResponderEvent,
-  ViewStyle,
-  TextStyle
+import {
+    Animated,
+    GestureResponderEvent,
+    Pressable,
+    StyleSheet,
+    Text,
+    TextStyle,
+    ViewStyle
 } from 'react-native';
-import { useTheme, theme } from '../theme';
+import { theme, useTheme } from '../theme';
 
 interface Props {
   title: string;

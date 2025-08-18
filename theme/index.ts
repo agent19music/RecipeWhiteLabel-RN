@@ -3,7 +3,7 @@ import { ColorSchemeName, useColorScheme } from 'react-native';
 import { Colors, DarkColors } from '../constants/Colors';
 
 export const theme = {
-  radius: { sm: 12, md: 16, lg: 24, xl: 32 },
+  radius: { sm: 12, md: 16, lg: 20, xl: 24, xxl: 32 },
   space: { xs: 8, sm: 12, md: 16, lg: 24, xl: 32, xxl: 48 },
   font: { 
     h1: 32, 
@@ -12,6 +12,59 @@ export const theme = {
     body: 16, 
     small: 14,
     xs: 12 
+  },
+  glass: {
+    blur: {
+      light: 20,
+      medium: 30,
+      heavy: 50,
+      max: 80
+    },
+    opacity: {
+      light: 0.05,
+      medium: 0.08,
+      heavy: 0.12,
+      overlay: 0.25
+    },
+    border: {
+      light: 'rgba(255, 255, 255, 0.18)',
+      medium: 'rgba(255, 255, 255, 0.25)',
+      dark: 'rgba(0, 0, 0, 0.1)'
+    },
+    background: {
+      light: 'rgba(255, 255, 255, 0.08)',
+      medium: 'rgba(255, 255, 255, 0.12)',
+      heavy: 'rgba(255, 255, 255, 0.18)',
+      dark: 'rgba(0, 0, 0, 0.05)'
+    },
+    shadow: {
+      light: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.04,
+        shadowRadius: 8,
+        elevation: 2
+      },
+      medium: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.08,
+        shadowRadius: 12,
+        elevation: 4
+      },
+      heavy: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.12,
+        shadowRadius: 16,
+        elevation: 8
+      }
+    }
+  },
+  animation: {
+    quick: 200,
+    normal: 300,
+    slow: 500
   },
   light: {
     bg: Colors.background,
