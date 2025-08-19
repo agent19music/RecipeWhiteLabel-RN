@@ -2,19 +2,19 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as FileSystem from 'expo-file-system';
 import { Platform } from 'react-native';
 import {
-    DetectedIngredient,
-    IngredientDetectionResponse,
-    Recipe,
-    RecipeGenerationRequest,
-    RecipeGenerationResponse
+  DetectedIngredient,
+  IngredientDetectionResponse,
+  Recipe,
+  RecipeGenerationRequest,
+  RecipeGenerationResponse
 } from '../data/types';
 
 // Configuration
 const AI_CONFIG = {
   openaiApiKey: process.env.EXPO_PUBLIC_OPENAI_API_KEY || '',
-  openaiModel: 'gpt-4-turbo-preview',
-  visionModel: 'gpt-4-vision-preview',
-  imageModel: 'dall-e-3',
+  openaiModel: 'gpt-4o-mini',
+  visionModel: 'gpt-4o-mini',
+  imageModel: 'gpt-image-1',
   maxRetries: 3,
   retryDelay: 1000,
   cacheExpiry: 24 * 60 * 60 * 1000, // 24 hours
@@ -95,6 +95,11 @@ export async function analyzeIngredientsFromImage(
 ): Promise<IngredientDetectionResponse> {
   const startTime = Date.now();
   
+  // Validate API key early with explicit error
+  if (!AI_CONFIG.openaiApiKey) {
+    throw new Error('Missing OpenAI API key. Set EXPO_PUBLIC_OPENAI_API_KEY in your environment.');
+  }
+
   // Check cache
   const cacheKey = generateCacheKey(CACHE_KEYS.VISION_ANALYSIS, { imageUri, options });
   const cached = await getFromCache<IngredientDetectionResponse>(cacheKey);
@@ -161,6 +166,7 @@ export async function analyzeIngredientsFromImage(
           ],
           max_tokens: 1000,
           temperature: 0.3,
+          response_format: { type: 'json_object' },
         }),
       });
 
@@ -218,6 +224,10 @@ export async function generateRecipeFromIngredients(
   request: RecipeGenerationRequest
 ): Promise<RecipeGenerationResponse> {
   const startTime = Date.now();
+
+  if (!AI_CONFIG.openaiApiKey) {
+    throw new Error('Missing OpenAI API key. Set EXPO_PUBLIC_OPENAI_API_KEY in your environment.');
+  }
   
   // Check cache
   const cacheKey = generateCacheKey(CACHE_KEYS.RECIPE_GENERATION, request);
@@ -245,6 +255,7 @@ export async function generateRecipeFromIngredients(
         "servings": ...,
         "prepTime": ...,
         "cookTime": ...,
+        "totalTime": ...,
         "difficulty": "easy|medium|hard",
         "cuisine": "...",
         "dietTags": [...],

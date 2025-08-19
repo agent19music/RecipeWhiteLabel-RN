@@ -6,7 +6,7 @@ import Entypo from '@expo/vector-icons/Entypo';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { Tabs } from 'expo-router';
 import React from 'react';
-import { Platform } from 'react-native';
+import { Platform, View } from 'react-native';
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
@@ -40,7 +40,7 @@ export default function TabLayout() {
         },
       }}>
       
-      {/* Main 3 tabs only */}
+      {/* Home Tab */}
       <Tabs.Screen 
         name="index" 
         options={{ 
@@ -52,33 +52,98 @@ export default function TabLayout() {
         }} 
       />
       
+      {/* Community Tab */}
       <Tabs.Screen 
         name="community/recipe-list" 
         options={{ 
-          title: 'Recipes', 
-          tabBarLabel: 'Recipes',
+          title: 'Community', 
+          tabBarLabel: 'Community',
           tabBarIcon: ({ color, focused }) => (
             <Ionicons 
               name={focused ? "people" : "people-outline"} 
-              size={26} 
+              size={24} 
               color={color} 
             />
           )
         }} 
       />
       
+      {/* AI Recipe Tab - Centered with special styling */}
       <Tabs.Screen 
-        name="pantry/index" 
+        name="ai-camera" 
         options={{ 
-            title: 'Kitchen', 
+          title: 'AI Recipe', 
+          tabBarLabel: 'AI Recipe',
+          tabBarIcon: ({ color, focused }) => (
+            <View style={{
+              width: 56,
+              height: 56,
+              borderRadius: 28,
+              backgroundColor: focused ? colors.primary : colors.primary + '90',
+              justifyContent: 'center',
+              alignItems: 'center',
+              marginTop: -12,
+              shadowColor: colors.primary,
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: 0.3,
+              shadowRadius: 8,
+              elevation: 8,
+              borderWidth: 3,
+              borderColor: colors.white,
+            }}>
+              <MaterialIcons name="auto-awesome" size={28} color={colors.white} />
+            </View>
+          ),
+        }} 
+      />
+      
+      {/* Pantry Tab */}
+      <Tabs.Screen 
+        name="pantry" 
+        options={{ 
+          title: 'Pantry', 
           tabBarLabel: 'Pantry',
           tabBarIcon: ({ color, focused }) => (
-            <MaterialIcons name="kitchen" size={24} color={color} />
+            <MaterialIcons 
+              name={focused ? "shopping-basket" : "shopping-basket"} 
+              size={24} 
+              color={color} 
+            />
           )
         }} 
       />
       
-      {/* Only declare screens that exist under (tabs) to avoid warnings */}
+      {/* Meal Planner Tab */}
+      <Tabs.Screen 
+        name="plan/index" 
+        options={{ 
+          title: 'Meal Plan', 
+          tabBarLabel: 'Meal Plan',
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons 
+              name={focused ? "calendar" : "calendar-outline"} 
+              size={24} 
+              color={color} 
+            />
+          )
+        }} 
+      />
+      
+      {/* Hide the pantry sub-screens from navigation */}
+      <Tabs.Screen 
+        name="pantry/enhanced" 
+        options={{ 
+          href: null,
+        }} 
+      />
+      
+      <Tabs.Screen 
+        name="pantry/smart-shopping" 
+        options={{ 
+          href: null,
+        }} 
+      />
+      
     </Tabs>
   );
 }

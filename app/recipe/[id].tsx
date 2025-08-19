@@ -330,11 +330,7 @@ export default function RecipeDetailScreen() {
     <>
       <Stack.Screen 
         options={{ 
-          title: recipe?.title || 'Recipe',
-          headerShown: true,
-          headerStyle: { backgroundColor: Colors.white },
-          headerTintColor: Colors.text.primary,
-          headerTitleStyle: { fontWeight: '600' },
+          headerShown: false,
         }} 
       />
       <View style={styles.container}>

@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, Platform } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, Platform, ScrollView, Alert } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { theme, useTheme } from '../../theme';
 import Button from '../../components/Button';
@@ -11,9 +11,10 @@ import { track } from '../../utils/analytics';
 
 export default function CameraScreen(){
   const { palette } = useTheme();
-  const r = useRouter();
+  const router = useRouter();
   const [permission, requestPermission] = useCameraPermissions();
   const [ing, setIng] = useState<string[]>([]);
+  const [detectedRecipes, setDetectedRecipes] = useState<any[]>([]);
 
   const canUseCamera = permission?.granted && Platform.OS !== 'web';
 
@@ -24,8 +25,31 @@ export default function CameraScreen(){
   };
 
   const seeRecipes = () => {
-    const ids = seedRecipes.filter(rp => ing.some(i => rp.title.toLowerCase().includes(i) || rp.ingredients.some((x: { name: string }) => x.name.toLowerCase().includes(i)))).map(rp => rp.id);
-    r.push({ pathname: '/community/recipe-list', params: { ids: ids.join(',') } });
+    try {
+      const matchingRecipes = seedRecipes.filter(rp => 
+        ing.some(i => 
+          rp.title.toLowerCase().includes(i.toLowerCase()) || 
+          rp.ingredients.some((x: any) => x.name.toLowerCase().includes(i.toLowerCase()))
+        )
+      );
+      
+      if (matchingRecipes.length > 0) {
+        setDetectedRecipes(matchingRecipes);
+        Alert.alert(
+          'Recipes Found!', 
+          `Found ${matchingRecipes.length} recipes matching your ingredients. Navigate to the Discover tab to see them.`,
+          [
+            { text: 'View Recipes', onPress: () => router.push('/(tabs)/') },
+            { text: 'Stay Here', style: 'cancel' }
+          ]
+        );
+      } else {
+        Alert.alert('No Recipes Found', 'Try detecting more ingredients or use manual input.');
+      }
+    } catch (error) {
+      console.error('Error finding recipes:', error);
+      Alert.alert('Error', 'Could not find recipes. Please try again.');
+    }
   };
 
   return (
@@ -52,7 +76,7 @@ export default function CameraScreen(){
 
         <View style={{ marginTop: 'auto', gap: theme.space.sm }}>
         <Button title="Detect Ingredients" onPress={detect} accessibilityLabel="Detect Ingredients" />
-        <Button title="Switch to Manual" variant="ghost" onPress={() => r.push('/ai/manual')} accessibilityLabel="Switch to Manual" />
+        <Button title="Switch to Manual" variant="ghost" onPress={() => router.push('/ai/manual')} accessibilityLabel="Switch to Manual" />  
         <Button title="See Recipes" onPress={seeRecipes} accessibilityLabel="See Recipes" disabled={ing.length === 0} />
       </View>
     </View>

@@ -101,10 +101,12 @@ export default function AICameraScreen() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
     try {
-      // Capture image
+      // Capture image silently
       const photo = await cameraRef.current.takePictureAsync({
         base64: true,
         quality: 0.7,
+        skipProcessing: true,
+        exif: false,
       });
 
       if (photo && photo.base64) {
@@ -258,6 +260,7 @@ export default function AICameraScreen() {
                   style={[styles.captureButton, isAnalyzing && styles.captureButtonAnalyzing]}
                   onPress={captureAndAnalyze}
                   disabled={isAnalyzing}
+                  accessibilityLabel="Capture and analyze"
                 >
                   {isAnalyzing ? (
                     <ActivityIndicator size="large" color={Colors.white} />
@@ -422,37 +425,36 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   focusFrame: {
-    width: width * 0.8,
-    height: width * 0.6,
-    borderWidth: 2,
     borderColor: Colors.white,
-    borderRadius: 20,
+    borderWidth: 2,
+    borderRadius: 16,
+    width: width * 0.7,
+    height: width * 0.7 * 1.2,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: '#00000040',
   },
   focusText: {
     color: Colors.white,
-    fontSize: 16,
-    fontWeight: '500',
-    textAlign: 'center',
+    fontSize: 14,
+    opacity: 0.8,
   },
   bottomControls: {
     alignItems: 'center',
     paddingBottom: 30,
   },
   captureButton: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: Colors.primary,
+    width: 74,
+    height: 74,
+    borderRadius: 37,
+    borderWidth: 3,
+    borderColor: Colors.white,
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 4,
-    borderColor: Colors.white,
+    backgroundColor: '#ffffff20',
   },
   captureButtonAnalyzing: {
-    backgroundColor: Colors.warning,
+    opacity: 0.6,
   },
   ingredientsPanel: {
     position: 'absolute',

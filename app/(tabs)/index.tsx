@@ -40,6 +40,8 @@ export default function HomeScreen() {
   const [timeBasedMeals, setTimeBasedMeals] = useState<Recipe[]>([]);
   const [featuredMeals, setFeaturedMeals] = useState<Recipe[]>([]);
   const [quickMeals, setQuickMeals] = useState<Recipe[]>([]);
+  const [allRecipes, setAllRecipes] = useState<Recipe[]>([]);
+  const [filteredRecipes, setFilteredRecipes] = useState<Recipe[]>([]);
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
 
@@ -61,14 +63,24 @@ export default function HomeScreen() {
   };
 
   useEffect(() => {
-    // Load time-based meals
-    const meals = getEnhancedMealsByTimeOfDay();
-    setTimeBasedMeals(meals);
-    setFeaturedMeals(getEnhancedFeaturedRecipes());
+    // Load all recipes and categories
+    const loadRecipes = async () => {
+      const { getAllEnhancedRecipes } = await import('@/data/enhanced-recipes');
+      const all = getAllEnhancedRecipes();
+      setAllRecipes(all);
+      setFilteredRecipes(all);
+      
+      // Load time-based meals
+      const meals = getEnhancedMealsByTimeOfDay();
+      setTimeBasedMeals(meals);
+      setFeaturedMeals(getEnhancedFeaturedRecipes());
+      
+      // Get quick meals (meals under 30 min)
+      const quick = getEnhancedQuickRecipes().slice(0, 6);
+      setQuickMeals(quick);
+    };
     
-    // Get quick meals (meals under 30 min)
-    const quick = getEnhancedQuickRecipes().slice(0, 6);
-    setQuickMeals(quick);
+    loadRecipes();
 
     // Start animations
     Animated.parallel([
@@ -85,6 +97,67 @@ export default function HomeScreen() {
       }),
     ]).start();
   }, []);
+  
+  // Filter recipes based on selected category and search
+  useEffect(() => {
+    let filtered = [...allRecipes];
+    
+    // Apply category filter
+    if (selectedCategory !== '1') { // '1' is "All"
+      const categoryMap: { [key: string]: string } = {
+        '2': 'breakfast',
+        '3': 'lunch', 
+        '4': 'dinner',
+        '5': 'kenyan',
+        '6': 'swahili'
+      };
+      
+      const filterType = categoryMap[selectedCategory];
+      
+      if (filterType === 'breakfast' || filterType === 'lunch' || filterType === 'dinner') {
+        // Filter by meal type
+        filtered = filtered.filter(recipe => {
+          const courses = recipe.details?.course || [];
+          const tags = recipe.tags || [];
+          const title = recipe.title.toLowerCase();
+          
+          // Check in courses, tags, or title
+          return courses.some(c => c.toLowerCase() === filterType) ||
+                 tags.some(t => t.toLowerCase() === filterType) ||
+                 title.includes(filterType);
+        });
+      } else if (filterType === 'kenyan' || filterType === 'swahili') {
+        // Filter by cuisine
+        filtered = filtered.filter(recipe => {
+          const cuisine = recipe.details?.cuisine?.toLowerCase() || recipe.cuisine?.toLowerCase() || '';
+          const tags = recipe.tags || [];
+          const title = recipe.title.toLowerCase();
+          
+          return cuisine.includes(filterType) ||
+                 tags.some(t => t.toLowerCase().includes(filterType)) ||
+                 title.includes(filterType);
+        });
+      }
+    }
+    
+    // Apply search filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(recipe => {
+        const title = recipe.title.toLowerCase();
+        const description = (recipe.description || '').toLowerCase();
+        const tags = (recipe.tags || []).join(' ').toLowerCase();
+        const ingredients = recipe.ingredients.map(i => i.name.toLowerCase()).join(' ');
+        
+        return title.includes(query) ||
+               description.includes(query) ||
+               tags.includes(query) ||
+               ingredients.includes(query);
+      });
+    }
+    
+    setFilteredRecipes(filtered);
+  }, [selectedCategory, searchQuery, allRecipes]);
 
   const renderCategoryItem = ({ item }: { item: typeof categories[0] }) => (
     <TouchableOpacity
@@ -207,23 +280,48 @@ export default function HomeScreen() {
           />
         </View>
 
-        {/* Time-based Meals Section */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Recommended for {getMealType()}</Text>
-            <TouchableOpacity>
-              <Text style={styles.seeAllText}>See all</Text>
-            </TouchableOpacity>
+        {/* Filtered Results or Time-based Meals Section */}
+        {selectedCategory !== '1' && filteredRecipes.length > 0 ? (
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>
+                {categories.find(c => c.id === selectedCategory)?.name} Recipes ({filteredRecipes.length})
+              </Text>
+            </View>
+            <FlatList
+              data={filteredRecipes.slice(0, 10)}
+              renderItem={renderRecipeCard}
+              keyExtractor={(item) => item.id}
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.recipesList}
+            />
           </View>
-          <FlatList
-            data={timeBasedMeals.slice(0, 5)}
-            renderItem={renderRecipeCard}
-            keyExtractor={(item) => item.id}
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.recipesList}
-          />
-        </View>
+        ) : selectedCategory === '1' ? (
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Recommended for {getMealType()}</Text>
+              <TouchableOpacity>
+                <Text style={styles.seeAllText}>See all</Text>
+              </TouchableOpacity>
+            </View>
+            <FlatList
+              data={timeBasedMeals.slice(0, 5)}
+              renderItem={renderRecipeCard}
+              keyExtractor={(item) => item.id}
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.recipesList}
+            />
+          </View>
+        ) : (
+          <View style={styles.section}>
+            <View style={styles.emptyContainer}>
+              <Ionicons name="search-outline" size={48} color={Colors.gray[400]} />
+              <Text style={styles.emptyText}>No recipes found for this filter</Text>
+            </View>
+          </View>
+        )}
 
         {/* East African Favorites */}
         <View style={styles.section}>
@@ -589,5 +687,15 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: Colors.white,
     opacity: 0.9,
+  },
+  emptyContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 60,
+  },
+  emptyText: {
+    fontSize: 16,
+    color: Colors.text.secondary,
+    marginTop: 16,
   },
 });

@@ -1,8 +1,9 @@
 // Enhanced recipes with detailed cooking instructions and rich metadata
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Recipe } from './types';
-import { getAllRecipes } from './recipes';
 import { getUserRecipes } from '../utils/ai';
+import { getAllRecipes } from './recipes';
+import { Recipe } from './types';
+import { getInternationalRecipes } from './international-recipes';
 
 // Helper to create recipe IDs
 const createId = (prefix: string, num: number) => `${prefix}-${num.toString().padStart(3, '0')}`;
@@ -16,12 +17,12 @@ export const enhancedBreakfastRecipes: Recipe[] = [
     description: 'Mandazi, also known as Swahili donuts or African donuts, are a popular snack throughout East Africa. These delightful treats are less sweet than Western donuts and have a wonderful cardamom flavor that pairs perfectly with tea or coffee.',
     
     // Images
-    image: require('@/assets/images/food-example.jpg'),
+    image: require('@/assets/images/mandazi.jpg'),
     images: [
-      require('@/assets/images/food-example.jpg'),
-      require('@/assets/images/royco.jpg'),
+      require('@/assets/images/mandazi.jpg'),
+      require('@/assets/images/mandazi.jpg'),
     ],
-    heroImage: require('@/assets/images/food-example.jpg'),
+    heroImage: require('@/assets/images/mandazi.jpg'),
     
     // Ingredients with detailed information
     ingredients: [
@@ -142,12 +143,12 @@ export const enhancedBreakfastRecipes: Recipe[] = [
     summary: 'A hearty East African breakfast combining the staple cornmeal porridge with perfectly seasoned scrambled eggs.',
     description: 'Ugali, the cornerstone of East African cuisine, transforms into a delicious breakfast when paired with fluffy scrambled eggs seasoned with local spices. This protein-rich meal provides sustained energy throughout the morning.',
     
-    image: require('@/assets/images/royco.jpg'),
+    image: require('@/assets/images/homemade-ugali-scrambled-eggs-and-plain-kales.webp'),
     images: [
-      require('@/assets/images/royco.jpg'),
-      require('@/assets/images/food-example.jpg'),
+      require('@/assets/images/homemade-ugali-scrambled-eggs-and-plain-kales.webp'),
+      require('@/assets/images/homemade-ugali-scrambled-eggs-and-plain-kales.webp'),
     ],
-    heroImage: require('@/assets/images/royco.jpg'),
+    heroImage: require('@/assets/images/homemade-ugali-scrambled-eggs-and-plain-kales.webp'),
     
     ingredients: [
       { name: 'White cornmeal (maize flour)', quantity: 2, unit: 'cups', group: 'For Ugali' },
@@ -256,9 +257,9 @@ export const enhancedBreakfastRecipes: Recipe[] = [
     summary: 'Soft, layered flatbreads served with aromatic spiced tea - a perfect East African breakfast combination.',
     description: 'Chapati, the beloved East African flatbread with Indian origins, creates perfect layers when properly prepared. Paired with cardamom-scented chai, this breakfast is both comforting and energizing.',
     
-    image: require('@/assets/images/food-example.jpg'),
-    images: [require('@/assets/images/food-example.jpg')],
-    heroImage: require('@/assets/images/food-example.jpg'),
+    image: require('@/assets/images/chapatichai.webp'),
+    images: [require('@/assets/images/chapatichai.webp')],
+    heroImage: require('@/assets/images/chapatichai.webp'),
     
     ingredients: [
       { name: 'All-purpose flour', quantity: 3, unit: 'cups', group: 'For Chapati' },
@@ -364,9 +365,9 @@ export const enhancedBreakfastRecipes: Recipe[] = [
     summary: 'Crispy triangular pastries filled with spiced meat or vegetables, perfect for breakfast or any time.',
     description: 'These golden triangular delights are a beloved breakfast treat across East Africa. Crispy on the outside with flavorful spiced filling, sambusas are perfect with a cup of chai.',
     
-    image: require('@/assets/images/food-example.jpg'),
-    images: [require('@/assets/images/food-example.jpg')],
-    heroImage: require('@/assets/images/food-example.jpg'),
+    image: require('@/assets/images/samosas.jpg'),
+    images: [require('@/assets/images/samosas.jpg')],
+    heroImage: require('@/assets/images/samosas.jpg'),
     
     ingredients: [
       { name: 'Spring roll wrappers', quantity: 1, unit: 'package', group: 'Wrapper' },
@@ -457,9 +458,9 @@ export const enhancedBreakfastRecipes: Recipe[] = [
     summary: 'Fluffy Tanzanian rice pancakes that are naturally gluten-free and perfect for breakfast.',
     description: 'These delightful rice-based pancakes from Tanzania are naturally gluten-free and have a unique texture. Made with rice flour and coconut milk, they offer a tropical twist to your morning meal.',
     
-    image: require('@/assets/images/food-example.jpg'),
-    images: [require('@/assets/images/food-example.jpg')],
-    heroImage: require('@/assets/images/food-example.jpg'),
+    image: require('@/assets/images/mkate-ufuta.jpg'),
+    images: [require('@/assets/images/mkate-ufuta.jpg')],
+    heroImage: require('@/assets/images/mkate-ufuta.jpg'),
     
     ingredients: [
       { name: 'Rice flour', quantity: 2, unit: 'cups', group: 'Dry ingredients' },
@@ -540,94 +541,6 @@ export const enhancedBreakfastRecipes: Recipe[] = [
     minutes: 55,
   },
   
-  {
-    id: createId('breakfast', 6),
-    title: 'Rolex (Rolled Eggs & Chapati)',
-    summary: 'Uganda\'s favorite street food - omelet rolled in chapati, ready in just 15 minutes!',
-    description: 'The Rolex, a playful take on "rolled eggs," is Uganda\'s most popular street food. This quick, satisfying meal combines a vegetable-packed omelet with soft chapati for the perfect grab-and-go breakfast.',
-    
-    image: require('@/assets/images/food-example.jpg'),
-    images: [require('@/assets/images/food-example.jpg')],
-    heroImage: require('@/assets/images/food-example.jpg'),
-    
-    ingredients: [
-      { name: 'Eggs', quantity: 3, unit: 'large' },
-      { name: 'Chapati', quantity: 1, unit: 'piece', note: 'Store-bought or homemade' },
-      { name: 'Tomatoes', quantity: 1, unit: 'medium', note: 'Diced' },
-      { name: 'Onions', quantity: 0.5, unit: 'medium', note: 'Diced' },
-      { name: 'Cabbage', quantity: 0.25, unit: 'cup', note: 'Shredded' },
-      { name: 'Green pepper', quantity: 0.25, unit: 'piece', note: 'Diced', optional: true },
-      { name: 'Salt', quantity: 0.5, unit: 'tsp' },
-      { name: 'Black pepper', quantity: 0.25, unit: 'tsp' },
-      { name: 'Cooking oil', quantity: 1, unit: 'tbsp' },
-    ],
-    
-    steps: [
-      {
-        title: 'Prepare Vegetables',
-        body: 'Dice all vegetables finely. The key is to have them small enough to cook quickly with the eggs.',
-        time: 3,
-      },
-      {
-        title: 'Beat Eggs',
-        body: 'Crack eggs into a bowl. Add vegetables, salt, and pepper. Beat well to combine.',
-        time: 2,
-      },
-      {
-        title: 'Cook Omelet',
-        body: 'Heat oil in a pan. Pour in egg mixture and spread evenly. Cook for 2-3 minutes until bottom is set.',
-        time: 3,
-      },
-      {
-        title: 'Add Chapati',
-        body: 'Place chapati on top of the partially cooked omelet. Press gently. Flip the entire thing and cook for 1 minute.',
-        time: 2,
-      },
-      {
-        title: 'Roll and Serve',
-        body: 'Transfer to a plate, roll tightly, and wrap in paper or foil. Serve immediately while hot.',
-        time: 1,
-        tips: ['Can add chili sauce or ketchup before rolling'],
-      },
-    ],
-    
-    details: {
-      servings: 1,
-      prepTime: 5,
-      cookTime: 10,
-      totalTime: 15,
-      difficulty: 'easy',
-      cost: 'budget',
-      equipment: ['Frying pan', 'Spatula'],
-      allergens: ['Eggs', 'Gluten'],
-      dietTags: ['Vegetarian'],
-      cuisine: 'Ugandan',
-      course: ['Breakfast', 'Snack'],
-      rating: 4.8,
-      ratingCount: 423,
-    },
-    
-    nutrition: {
-      calories: 320,
-      carbs: 28,
-      protein: 18,
-      fat: 15,
-      fiber: 3,
-      sodium: 380,
-    },
-    
-    tips: [
-      'Use day-old chapati for easier rolling',
-      'Add cheese for extra richness',
-      'Great for using leftover vegetables',
-    ],
-    
-    createdBy: 'curated',
-    tags: ['breakfast', 'ugandan', 'street-food', 'eggs', 'quick'],
-    time: '15 min',
-    difficulty: 'Easy',
-    minutes: 15,
-  },
   
   {
     id: createId('breakfast', 7),
@@ -635,9 +548,9 @@ export const enhancedBreakfastRecipes: Recipe[] = [
     summary: 'Ethiopian sourdough flatbread served with spiced scrambled eggs for an authentic East African breakfast.',
     description: 'Injera, the spongy sourdough flatbread that\'s Ethiopia\'s staple, pairs beautifully with scrambled eggs seasoned with berbere spice. This combination offers a unique breakfast experience.',
     
-    image: require('@/assets/images/food-example.jpg'),
-    images: [require('@/assets/images/food-example.jpg')],
-    heroImage: require('@/assets/images/food-example.jpg'),
+    image: require('@/assets/images/injera.webp'),
+    images: [require('@/assets/images/injera.webp')],
+    heroImage: require('@/assets/images/injera.webp'),
     
     ingredients: [
       { name: 'Injera bread', quantity: 4, unit: 'pieces', note: 'Store-bought or homemade', group: 'Bread' },
@@ -726,9 +639,9 @@ export const enhancedBreakfastRecipes: Recipe[] = [
     summary: 'Sweet, cardamom-scented donuts from the Swahili coast, perfect with chai or coffee.',
     description: 'Mahamri are delightful Swahili coast donuts that are slightly sweet and beautifully spiced with cardamom. These triangular treats are perfect for breakfast or as an afternoon snack with tea.',
     
-    image: require('@/assets/images/food-example.jpg'),
-    images: [require('@/assets/images/food-example.jpg')],
-    heroImage: require('@/assets/images/food-example.jpg'),
+    image: require('@/assets/images/mahamri.jpg'),
+    images: [require('@/assets/images/mahamri.jpg')],
+    heroImage: require('@/assets/images/mahamri.jpg'),
     
     ingredients: [
       { name: 'All-purpose flour', quantity: 3, unit: 'cups', group: 'Dry ingredients' },
@@ -824,9 +737,9 @@ export const enhancedLunchRecipes: Recipe[] = [
     summary: 'Kenya\'s national dish - succulent grilled meat marinated in local spices, perfect for gatherings.',
     description: 'Nyama Choma, literally meaning "roasted meat" in Swahili, is more than just food - it\'s a social experience. This beloved dish brings people together around the grill, creating memories over perfectly charred, tender meat.',
     
-    image: require('@/assets/images/royco.jpg'),
-    images: [require('@/assets/images/royco.jpg')],
-    heroImage: require('@/assets/images/royco.jpg'),
+    image: require('@/assets/images/food-example.jpg'),
+    images: [require('@/assets/images/food-example.jpg')],
+    heroImage: require('@/assets/images/food-example.jpg'),
     
     ingredients: [
       { name: 'Goat meat or beef', quantity: 2, unit: 'kg', note: 'Cut into large pieces', group: 'Meat' },
@@ -1345,10 +1258,10 @@ export const enhancedDinnerRecipes: Recipe[] = [
     summary: 'The quintessential East African dinner - cornmeal staple with sautéed collard greens and rich beef stew.',
     description: 'This trio represents the heart of East African home cooking. Ugali provides the foundation, sukuma wiki adds nutrition and color, while the beef stew brings rich, comforting flavors to complete this satisfying meal.',
     
-    image: require('@/assets/images/royco.jpg'),
+    image: require('@/assets/images/ugalisukumabeef.jpeg'),
     images: [
-      require('@/assets/images/royco.jpg'),
-      require('@/assets/images/food-example.jpg'),
+      require('@/assets/images/ugalisukumabeef.jpeg'),
+      require('@/assets/images/ugalisukumabeef.jpeg'),
     ],
     
     ingredients: [
@@ -1434,9 +1347,9 @@ export const enhancedDinnerRecipes: Recipe[] = [
     summary: 'Aromatic layered rice dish with spiced meat, a celebration meal from the Swahili coast.',
     description: 'This fragrant biryani represents the rich culinary heritage of the Swahili coast. Layers of spiced rice and tender meat create a dish that\'s perfect for special occasions and gatherings.',
     
-    image: require('@/assets/images/royco.jpg'),
-    images: [require('@/assets/images/royco.jpg')],
-    heroImage: require('@/assets/images/royco.jpg'),
+    image: require('@/assets/images/biryani.jpg'),
+    images: [require('@/assets/images/biryani.jpg')],
+    heroImage: require('@/assets/images/biryani.jpg'),
     
     ingredients: [
       { name: 'Basmati rice', quantity: 3, unit: 'cups', group: 'Rice' },
@@ -1536,8 +1449,9 @@ export const enhancedQuickRecipes: Recipe[] = [
     summary: 'Street food favorite - omelet rolled in chapati, ready in just 15 minutes!',
     description: 'The Rolex, a playful take on "rolled eggs," is Uganda\'s most popular street food. This quick, satisfying meal combines a vegetable-packed omelet with soft chapati for the perfect grab-and-go breakfast or snack.',
     
-    image: require('@/assets/images/food-example.jpg'),
-    images: [require('@/assets/images/food-example.jpg')],
+    image: require('@/assets/images/rolex.jpg'),
+    images: [require('@/assets/images/rolex.jpg')],
+    heroImage: require('@/assets/images/rolex.jpg'),
     
     ingredients: [
       { name: 'Eggs', quantity: 3, unit: 'large' },
@@ -1627,10 +1541,10 @@ export const enhancedFeaturedRecipes: Recipe[] = [
     summary: 'Coastal delicacy featuring fresh fish in creamy coconut sauce with aromatic spices.',
     description: 'This Swahili coast specialty showcases the region\'s abundant seafood and coconut. The delicate tilapia absorbs the rich, spiced coconut curry, creating a dish that\'s both exotic and comforting.',
     
-    image: require('@/assets/images/royco.jpg'),
+    image: require('@/assets/images/tilapiacoconut.jpg'),
     images: [
-      require('@/assets/images/royco.jpg'),
-      require('@/assets/images/food-example.jpg'),
+      require('@/assets/images/tilapiacoconut.jpg'),
+      require('@/assets/images/tilapiacoconut.jpg'),
     ],
     
     ingredients: [
@@ -1761,13 +1675,24 @@ export function getEnhancedQuickRecipes(): Recipe[] {
 
 // Get all enhanced recipes
 export function getAllEnhancedRecipes(): Recipe[] {
-  return [
+  const internationalRecipes = getInternationalRecipes();
+  const all = [
     ...enhancedBreakfastRecipes,
     ...enhancedLunchRecipes,
     ...enhancedDinnerRecipes,
     ...enhancedQuickRecipes,
     ...enhancedFeaturedRecipes,
+    ...internationalRecipes,
   ];
+
+  // Apply local image overrides when titles match
+  return all.map(r => {
+    const override = imageOverrides[r.title as string];
+    if (override) {
+      return { ...r, image: override, heroImage: override };
+    }
+    return r;
+  });
 }
 
 // Search recipes by ingredients
@@ -1921,3 +1846,21 @@ export function getRecipeByIdSync(id: string): Recipe | null {
     cuisine,
   };
 }
+
+// Local asset overrides for hero images
+const imageOverrides: Record<string, any> = {
+  'Spaghetti Carbonara': require('@/assets/images/carbonara.jpg'),
+  'Greek Salad': require('@/assets/images/greeksalad.jpg'),
+  'Chicken Tikka Masala': require('@/assets/images/chickentikkamasala.jpg'),
+  'Mushroom Risotto': require('@/assets/images/mushroomrisotto.jpeg'),
+  'Rice and Chorizo Burrito': require('@/assets/images/rice-and-chorizo-burrito.webp'),
+  'Rolex (Rolled Eggs & Chapati)': require('@/assets/images/rolex.jpg'),
+  'Rolex (Ugandan Rolled Egg)': require('@/assets/images/rolex.jpg'),
+  'Stir-Fry Rice': require('@/assets/images/stir-fry-rice.jpg'),
+  'Tilapia in Coconut Curry': require('@/assets/images/tilapiacoconut.jpg'),
+  'Ugali with Sukuma Wiki & Beef Stew': require('@/assets/images/ugalisukumabeef.jpeg'),
+  'Injera with Scrambled Eggs': require('@/assets/images/injera.webp'),
+  'Mandazi (East African Donuts)': require('@/assets/images/mandazi.jpg'),
+  'Chapati & Spiced Chai': require('@/assets/images/chapatichai.webp'),
+  'Biryani': require('@/assets/images/biryani.jpg'),
+};
