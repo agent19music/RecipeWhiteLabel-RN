@@ -1,6 +1,5 @@
 import { HapticTab } from '@/components/HapticTab';
 import { Colors } from '@/constants/Colors';
-import { useColorScheme } from '@/hooks/useColorScheme';
 import { Ionicons } from '@expo/vector-icons';
 import Entypo from '@expo/vector-icons/Entypo';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
@@ -9,19 +8,17 @@ import React from 'react';
 import { Platform, View } from 'react-native';
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
-  const colors = colorScheme === 'dark' ? Colors : Colors;
 
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: colors.primary,
-        tabBarInactiveTintColor: colors.gray[500],
+        tabBarActiveTintColor: Colors.primary,
+        tabBarInactiveTintColor: Colors.gray[500],
         headerShown: false,
         tabBarButton: HapticTab,
         tabBarStyle: {
-          backgroundColor: colors.white,
-          borderTopColor: colors.gray[100],
+          backgroundColor: Colors.tabBar.background,
+          borderTopColor: Colors.tabBar.border,
           borderTopWidth: 1,
           paddingTop: 8,
           paddingBottom: Platform.OS === 'ios' ? 28 : 8,
@@ -79,19 +76,19 @@ export default function TabLayout() {
               width: 56,
               height: 56,
               borderRadius: 28,
-              backgroundColor: focused ? colors.primary : colors.primary + '90',
+              backgroundColor: focused ? Colors.primary : Colors.primary + '90',
               justifyContent: 'center',
               alignItems: 'center',
               marginTop: -12,
-              shadowColor: colors.primary,
+              shadowColor: Colors.primary,
               shadowOffset: { width: 0, height: 4 },
               shadowOpacity: 0.3,
               shadowRadius: 8,
               elevation: 8,
               borderWidth: 3,
-              borderColor: colors.white,
+              borderColor: Colors.white,
             }}>
-              <MaterialIcons name="auto-awesome" size={28} color={colors.white} />
+              <MaterialIcons name="auto-awesome" size={28} color={Colors.white} />
             </View>
           ),
         }} 

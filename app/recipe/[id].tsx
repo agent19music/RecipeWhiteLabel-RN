@@ -2,6 +2,7 @@ import CookingStepper from '@/components/CookingStepper';
 import ModernButton from '@/components/ModernButton';
 import { Colors } from '@/constants/Colors';
 import { getRecipeById } from '@/data/enhanced-recipes';
+import { getCommunityRecipes } from '@/data/community-recipes';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -11,6 +12,7 @@ import {
   Animated,
   Dimensions,
   Image,
+  Linking,
   Platform,
   StatusBar,
   StyleSheet,
@@ -115,10 +117,18 @@ export default function RecipeDetailScreen() {
   const scaleAnim = useRef(new Animated.Value(0.9)).current;
 
   useEffect(() => {
-    // Get recipe details from enhanced recipes (async)
+    // Get recipe details from enhanced recipes or community recipes
     const loadRecipe = async () => {
       try {
-        const foundRecipe = await getRecipeById(id as string);
+        // First try to get from enhanced recipes
+        let foundRecipe = await getRecipeById(id as string);
+        
+        // If not found, check community recipes
+        if (!foundRecipe) {
+          const communityRecipes = getCommunityRecipes();
+          foundRecipe = communityRecipes.find(r => r.id === id);
+        }
+        
         if (foundRecipe) {
           setRecipe(foundRecipe);
           // Use details.servings if available, otherwise use servings field
@@ -407,10 +417,55 @@ export default function RecipeDetailScreen() {
               { opacity: fadeAnim, transform: [{ scale: scaleAnim }] }
             ]}
           >
-            <View style={styles.cuisineBadge}>
-              <Text style={styles.cuisineText}>{recipe.details?.cuisine || recipe.cuisine || 'International'}</Text>
+            <View style={styles.badgeRow}>
+              <View style={styles.cuisineBadge}>
+                <Text style={styles.cuisineText}>{recipe.details?.cuisine || recipe.cuisine || 'International'}</Text>
+              </View>
+              {recipe.createdBy === 'community' && recipe.socialMedia && (
+                <View style={styles.socialBadge}>
+                  <MaterialCommunityIcons name="tiktok" size={14} color={Colors.white} />
+                  <Text style={styles.socialBadgeText}>Viral</Text>
+                </View>
+              )}
             </View>
+            
             <Text style={styles.recipeTitle}>{recipe.title}</Text>
+            
+            {/* Creator Attribution for Community Recipes */}
+            {recipe.createdBy === 'community' && recipe.author && (
+              <View style={styles.creatorSection}>
+                <View style={styles.creatorInfo}>
+                  <View style={styles.creatorAvatar}>
+                    <MaterialCommunityIcons name="chef-hat" size={20} color={Colors.primary} />
+                  </View>
+                  <View style={styles.creatorDetails}>
+                    <Text style={styles.creatorName}>by {recipe.author}</Text>
+                    {recipe.socialMedia && (
+                      <View style={styles.socialStats}>
+                        <Text style={styles.socialHandle}>{recipe.socialMedia.handle}</Text>
+                        <Text style={styles.socialDot}>•</Text>
+                        <Text style={styles.socialFollowers}>{recipe.socialMedia.followers} followers</Text>
+                      </View>
+                    )}
+                  </View>
+                </View>
+                {recipe.socialMedia && (
+                  <TouchableOpacity 
+                    style={styles.followButton}
+                    onPress={() => {
+                      // Handle follow/view profile
+                      if (recipe.sourceUrl) {
+                        // Open TikTok profile
+                        Linking.openURL(recipe.sourceUrl);
+                      }
+                    }}
+                  >
+                    <Text style={styles.followButtonText}>View Profile</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            )}
+            
             {recipe.description && (
               <Text style={styles.recipeDescription}>{recipe.description}</Text>
             )}
@@ -433,7 +488,7 @@ export default function RecipeDetailScreen() {
               </View>
             </View>
 
-            {/* Rating */}
+            {/* Rating & Social Proof */}
             <View style={styles.ratingRow}>
               <View style={styles.rating}>
                 {[1, 2, 3, 4, 5].map((star) => {
@@ -450,7 +505,28 @@ export default function RecipeDetailScreen() {
                 <Text style={styles.ratingText}>{recipe.details?.rating || recipe.rating || 4.5}</Text>
               </View>
               <Text style={styles.reviewsText}>({recipe.details?.ratingCount || recipe.reviews || 120} reviews)</Text>
+              {recipe.socialMedia?.likes && (
+                <>
+                  <Text style={styles.socialDot}>•</Text>
+                  <View style={styles.likesContainer}>
+                    <Ionicons name="heart" size={14} color={Colors.error} />
+                    <Text style={styles.likesText}>{recipe.socialMedia.likes}</Text>
+                  </View>
+                </>
+              )}
             </View>
+            
+            {/* Video Link for Community Recipes */}
+            {recipe.videoUrl && (
+              <TouchableOpacity 
+                style={styles.videoLink}
+                onPress={() => Linking.openURL(recipe.videoUrl)}
+              >
+                <MaterialCommunityIcons name="play-circle" size={20} color={Colors.primary} />
+                <Text style={styles.videoLinkText}>Watch Original Video</Text>
+                <Ionicons name="open-outline" size={16} color={Colors.primary} />
+              </TouchableOpacity>
+            )}
           </Animated.View>
 
           {/* Tab Navigation */}
@@ -588,6 +664,110 @@ const styles = StyleSheet.create({
   },
   cuisineText: {
     fontSize: 12,
+    fontWeight: '600',
+    color: Colors.primary,
+  },
+  badgeRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 12,
+  },
+  socialBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#000000',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 20,
+    gap: 4,
+  },
+  socialBadgeText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: Colors.white,
+  },
+  creatorSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.divider,
+  },
+  creatorInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  creatorAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: Colors.primaryMuted,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  creatorDetails: {
+    flex: 1,
+  },
+  creatorName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: Colors.text.primary,
+    marginBottom: 2,
+  },
+  socialStats: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  socialHandle: {
+    fontSize: 14,
+    color: Colors.text.secondary,
+  },
+  socialDot: {
+    fontSize: 12,
+    color: Colors.text.tertiary,
+  },
+  socialFollowers: {
+    fontSize: 14,
+    color: Colors.text.secondary,
+  },
+  followButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: Colors.primary,
+  },
+  followButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: Colors.white,
+  },
+  likesContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  likesText: {
+    fontSize: 14,
+    color: Colors.text.secondary,
+  },
+  videoLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: Colors.primaryMuted,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 12,
+    marginTop: 12,
+  },
+  videoLinkText: {
+    flex: 1,
+    fontSize: 14,
     fontWeight: '600',
     color: Colors.primary,
   },

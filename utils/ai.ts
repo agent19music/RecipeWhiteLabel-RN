@@ -8,6 +8,11 @@ import {
   RecipeGenerationRequest,
   RecipeGenerationResponse
 } from '../data/types';
+import { 
+  generateRoycoEnhancedPrompt, 
+  ensureRoycoProducts,
+  suggestRoycoProducts 
+} from './royco-products';
 
 // Configuration
 const AI_CONFIG = {
@@ -237,43 +242,72 @@ export async function generateRecipeFromIngredients(
   }
 
   try {
-    const systemPrompt = `You are a professional chef and recipe creator. Generate detailed, practical recipes based on provided ingredients.
+    // Base system prompt for recipe generation
+    const baseSystemPrompt = `You are a professional chef and recipe creator specializing in East African cuisine. Generate detailed, practical recipes based on provided ingredients.
     Your recipes should be:
-    - Clear and easy to follow
-    - Culturally appropriate (consider East African cuisine when relevant)
+    - Clear and easy to follow with precise measurements
+    - Culturally appropriate (emphasize East African/Kenyan cuisine)
     - Nutritionally balanced
     - Time-efficient
+    - Include specific product recommendations
     
     Respond with a JSON object that matches this structure:
     {
       "id": "unique-id",
       "title": "Recipe Name",
-      "summary": "Brief description",
-      "ingredients": [{"name": "...", "quantity": ..., "unit": "...", "note": "..."}],
-      "steps": [{"title": "...", "body": "...", "time": ...}],
+      "summary": "Brief description mentioning key Royco products used",
+      "description": "Detailed description highlighting how Royco products enhance the dish",
+      "ingredients": [{"name": "...", "quantity": ..., "unit": "...", "note": "...", "group": "..."}],
+      "steps": [{
+        "title": "...",
+        "body": "Detailed instructions mentioning Royco products by full name",
+        "time": ...,
+        "tips": ["Pro tips mentioning Royco product benefits"],
+        "temperature": {"value": ..., "unit": "C"}
+      }],
       "details": {
         "servings": ...,
         "prepTime": ...,
         "cookTime": ...,
         "totalTime": ...,
         "difficulty": "easy|medium|hard",
-        "cuisine": "...",
+        "cuisine": "Kenyan/East African",
         "dietTags": [...],
-        "equipment": [...]
+        "equipment": [...],
+        "cost": "budget|moderate|premium"
       },
       "nutrition": {
         "calories": ...,
         "protein": ...,
         "carbs": ...,
-        "fat": ...
+        "fat": ...,
+        "fiber": ...,
+        "sodium": ...
       },
-      "tips": [...],
+      "tips": ["Tips highlighting Royco product advantages"],
+      "variations": ["Variations using different Royco products"],
       "tags": [...]
     }`;
+    
+    // Enhance with Royco product integration
+    const systemPrompt = generateRoycoEnhancedPrompt(baseSystemPrompt);
 
-    const userPrompt = `Create a recipe using these ingredients: ${request.ingredients.join(', ')}.
+    // Suggest Royco products based on ingredients
+    const roycoSuggestions = suggestRoycoProducts(request.ingredients);
+    const roycoProductList = roycoSuggestions.map(p => p.displayName).join(', ');
+    
+    const userPrompt = `Create an authentic East African recipe using these ingredients: ${request.ingredients.join(', ')}.
+    
+    MANDATORY: You MUST incorporate these Royco products where appropriate: ${roycoProductList || 'Royco Beef Cubes, Royco Mchuzi Mix, Royco Pilau Masala'}
+    
     ${request.preferences ? `Preferences: ${JSON.stringify(request.preferences)}` : ''}
-    ${request.style ? `Style: ${request.style}` : ''}`;
+    ${request.style ? `Style: ${request.style}` : 'Kenyan/East African'}
+    
+    Remember to:
+    1. Use full Royco product names (e.g., "Royco Beef Cubes" not "beef cubes")
+    2. Explain how each Royco product enhances the dish
+    3. Include Royco products in ingredient list with proper formatting
+    4. Mention Royco products naturally in cooking steps`;
 
     const response = await retryWithBackoff(async () => {
       const res = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -303,21 +337,31 @@ export async function generateRecipeFromIngredients(
 
     // Parse response
     const content = response.choices[0]?.message?.content;
-    const recipeData = JSON.parse(content);
+    let recipeData = JSON.parse(content);
     
-    // Create Recipe object
+    // Ensure Royco products are properly integrated
+    recipeData = ensureRoycoProducts(recipeData);
+    
+    // Create Recipe object with Royco enhancements
     const recipe: Recipe = {
       id: `ai-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       title: recipeData.title,
       summary: recipeData.summary,
+      description: recipeData.description || recipeData.summary,
       ingredients: recipeData.ingredients,
       steps: recipeData.steps,
-      details: recipeData.details,
+      details: {
+        ...recipeData.details,
+        cuisine: recipeData.details?.cuisine || 'Kenyan',
+      },
       nutrition: recipeData.nutrition,
-      tips: recipeData.tips,
-      tags: recipeData.tags,
+      tips: recipeData.tips || [],
+      variations: recipeData.variations || [],
+      tags: [...(recipeData.tags || []), 'royco-enhanced', 'ai-generated'],
       createdBy: 'ai',
       aiGenerated: true,
+      roycoEnhanced: true,
+      sponsoredProducts: recipeData.sponsoredProducts || [],
       aiModel: AI_CONFIG.openaiModel,
       createdAt: new Date().toISOString(),
       

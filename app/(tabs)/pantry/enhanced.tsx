@@ -1,31 +1,27 @@
 import { Colors } from '@/constants/Colors';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { differenceInDays, parseISO } from 'date-fns';
+import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
-import React, { useMemo, useState, useRef } from 'react';
-import { 
-  Dimensions, 
-  ScrollView, 
-  StyleSheet, 
-  Text, 
-  TouchableOpacity, 
-  View,
-  TextInput,
-  Modal,
+import React, { useMemo, useRef, useState } from 'react';
+import {
   Alert,
-  FlatList,
-  Image,
   Animated,
-  ActivityIndicator,
+  Dimensions,
+  FlatList,
   Linking,
-  Platform
+  Modal,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { pantry as seedPantry } from '../../../data/seed';
 import { track } from '../../../utils/analytics';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as Haptics from 'expo-haptics';
-import { BlurView } from 'expo-blur';
 
 const { width } = Dimensions.get('window');
 
@@ -321,7 +317,7 @@ export default function EnhancedPantryScreen() {
         {/* AI Recipe Maker Card */}
         <TouchableOpacity 
           style={styles.aiCard}
-          onPress={() => router.push('/ai/index')}
+          onPress={() => router.push('/ai')}
           activeOpacity={0.95}
         >
           <View style={styles.aiCardContent}>
@@ -334,6 +330,27 @@ export default function EnhancedPantryScreen() {
               <View style={styles.aiCardButton}>
                 <Text style={styles.aiCardButtonText}>Generate Recipe</Text>
                 <Ionicons name="arrow-forward" size={20} color={Colors.primary} />
+              </View>
+            </View>
+          </View>
+        </TouchableOpacity>
+
+        {/* Community Recipes Card */}
+        <TouchableOpacity 
+          style={styles.communityCard}
+          onPress={() => router.push('/community')}
+          activeOpacity={0.95}
+        >
+          <View style={styles.communityCardContent}>
+            <View style={styles.communityIconContainer}>
+              <MaterialCommunityIcons name="chef-hat" size={48} color={Colors.white} />
+            </View>
+            <View style={styles.communityCardText}>
+              <Text style={styles.communityCardTitle}>TikTok Recipes</Text>
+              <Text style={styles.communityCardSubtitle}>Viral recipes from Kenyan creators</Text>
+              <View style={styles.communityCardButton}>
+                <Text style={styles.communityCardButtonText}>Explore Recipes</Text>
+                <MaterialCommunityIcons name="music-note" size={20} color={Colors.primary} />
               </View>
             </View>
           </View>
@@ -777,6 +794,59 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   aiCardButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: Colors.primary,
+  },
+  
+  // Community Card Styles
+  communityCard: {
+    marginHorizontal: 20,
+    marginBottom: 20,
+    borderRadius: 20,
+    overflow: 'hidden',
+    backgroundColor: '#FF6B6B',
+  },
+  communityCardContent: {
+    flexDirection: 'row',
+    padding: 20,
+    gap: 16,
+  },
+  communityIconContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  communityCardText: {
+    flex: 1,
+    justifyContent: 'center',
+  },
+  communityCardTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: Colors.white,
+    marginBottom: 4,
+  },
+  communityCardSubtitle: {
+    fontSize: 14,
+    color: Colors.white,
+    opacity: 0.9,
+    marginBottom: 12,
+  },
+  communityCardButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.white,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    alignSelf: 'flex-start',
+    gap: 8,
+  },
+  communityCardButtonText: {
     fontSize: 14,
     fontWeight: '600',
     color: Colors.primary,

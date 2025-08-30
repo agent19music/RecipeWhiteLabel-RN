@@ -120,6 +120,16 @@ export interface Recipe {
   createdAt?: string;
   updatedAt?: string;
   
+  // Video and Social Media
+  videoUrl?: string;
+  socialMedia?: {
+    platform: 'TikTok' | 'Instagram' | 'YouTube' | 'Facebook';
+    handle: string;
+    followers?: string;
+    videoId?: string;
+    embedUrl?: string;
+  };
+  
   // AI fields
   aiGenerated?: boolean;
   aiModel?: string;

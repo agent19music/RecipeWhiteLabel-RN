@@ -182,22 +182,42 @@ export default function ManualInput(){
         />
       </View>
 
-      {/* Cooking Animation Overlay */}
+      {/* Immersive Cooking Animation Overlay */}
       {showAnimation && (
-        <View style={StyleSheet.absoluteFillObject}>
+        <View style={[StyleSheet.absoluteFillObject, { zIndex: 9999 }]}>
           <View style={{ 
             flex: 1, 
-            backgroundColor: 'rgba(255, 255, 255, 0.95)',
+            backgroundColor: 'rgba(0, 0, 0, 0.92)',
             justifyContent: 'center',
             alignItems: 'center'
           }}>
+            {/* Royco Branding */}
+            <View style={{
+              position: 'absolute',
+              top: 60,
+              alignItems: 'center',
+            }}>
+              <Text style={{
+                fontSize: 24,
+                fontWeight: '800',
+                color: Colors.primary,
+                marginBottom: 8,
+              }}>Royco AI Chef</Text>
+              <Text style={{
+                fontSize: 14,
+                color: 'rgba(255, 255, 255, 0.7)',
+              }}>Powered by Advanced AI</Text>
+            </View>
+            
             <CookingSequence
               steps={['chopping', 'mixing', 'steaming', 'frying']}
               messages={[
                 'Analyzing your ingredients...',
-                'Creating the perfect recipe...',
-                'Adding spices and flavors...',
-                'Almost ready!'
+                'Selecting perfect Royco products...',
+                'Creating authentic Kenyan flavors...',
+                'Optimizing cooking techniques...',
+                'Adding Royco spices for perfection...',
+                'Finalizing your personalized recipe!'
               ]}
               stepDuration={2000}
               onComplete={() => {}}

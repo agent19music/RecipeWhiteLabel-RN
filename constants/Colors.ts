@@ -1,18 +1,68 @@
 /**
- * Centralized color system for Royco Recipe app
- * Update these values to change colors across the entire app
+ * Basic color constants for Royco Recipe app
+ * Using Royco brand colors (red, white, black)
  */
 
 export const Colors = {
-  // Primary brand colors
+  // Royco brand colors
   primary: '#DC143C',        // Crimson Red (Royco brand color)
-  primaryLight: '#E85D75',   // Lighter variant
-  primaryDark: '#A01028',    // Darker variant
-  primaryMuted: '#FFE4E9',   // Very light variant for backgrounds
+  primaryLight: '#E85D75',   // Lighter red
+  primaryDark: '#A01028',    // Darker red
+  primaryMuted: '#FFE4E9',   // Very light red for backgrounds
   
-  // Neutral colors
+  // Basic colors
   black: '#000000',
   white: '#FFFFFF',
+  gray: '#737373',
+  grayLight: '#E5E5E5',
+  grayDark: '#525252',
+  
+  // Text colors
+  textPrimary: '#171717',
+  textSecondary: '#525252',
+  textTertiary: '#737373',
+  
+  // Background colors
+  background: '#FFFFFF',
+  surface: '#F8F8F8',
+  card: '#FFFFFF',
+  
+  // Other UI elements
+  border: '#E5E5E5',
+  divider: '#F0F0F0',
+  success: '#10B981',
+  warning: '#F59E0B',
+  error: '#EF4444',
+  
+  // Tab bar colors
+  tabBarBackground: '#FFFFFF',
+  tabBarBorder: '#F5F5F5',
+  tabIconDefault: '#737373',
+  tabIconSelected: '#DC143C',
+  
+  // For backward compatibility with existing code
+  light: {
+    text: '#171717',
+    background: '#FFFFFF',
+    tint: '#DC143C',
+    icon: '#737373',
+    tabIconDefault: '#737373',
+    tabIconSelected: '#DC143C',
+  },
+  dark: {
+    text: '#171717',
+    background: '#FFFFFF',
+    tint: '#DC143C',
+    icon: '#737373',
+    tabIconDefault: '#737373',
+    tabIconSelected: '#DC143C',
+  },
+  text: {
+    primary: '#171717',
+    secondary: '#525252',
+    tertiary: '#737373',
+    inverse: '#FFFFFF',
+  },
   gray: {
     50: '#FAFAFA',
     100: '#F5F5F5',
@@ -25,27 +75,6 @@ export const Colors = {
     800: '#262626',
     900: '#171717',
   },
-  
-  // Semantic colors
-  success: '#10B981',
-  warning: '#F59E0B',
-  error: '#EF4444',
-  info: '#3B82F6',
-  
-  // UI colors
-  background: '#FFFFFF',
-  surface: '#FAFAFA',
-  card: '#FFFFFF',
-  text: {
-    primary: '#171717',
-    secondary: '#525252',
-    tertiary: '#737373',
-    inverse: '#FFFFFF',
-  },
-  border: '#E5E5E5',
-  divider: '#F5F5F5',
-  
-  // Tab bar specific
   tabBar: {
     background: '#FFFFFF',
     border: '#F5F5F5',
@@ -54,60 +83,22 @@ export const Colors = {
     labelDefault: '#737373',
     labelSelected: '#DC143C',
   },
-  
-  // Shadows
+  input: {
+    background: '#F8F8F8',
+    border: '#E5E5E5',
+    placeholder: '#A3A3A3',
+    text: '#171717',
+  },
   shadow: {
     light: 'rgba(0, 0, 0, 0.05)',
     medium: 'rgba(0, 0, 0, 0.1)',
     dark: 'rgba(0, 0, 0, 0.2)',
   },
+  modalBackground: 'rgba(0, 0, 0, 0.5)',
+  info: '#3B82F6',
 };
 
-// Dark mode colors (for future implementation)
-export const DarkColors = {
-  ...Colors,
-  background: '#000000',
-  surface: '#171717',
-  card: '#262626',
-  text: {
-    primary: '#FFFFFF',
-    secondary: '#D4D4D4',
-    tertiary: '#A3A3A3',
-    inverse: '#000000',
-  },
-  border: '#404040',
-  divider: '#262626',
-  tabBar: {
-    background: '#171717',
-    border: '#262626',
-    iconDefault: '#737373',
-    iconSelected: '#DC143C',
-    labelDefault: '#737373',
-    labelSelected: '#DC143C',
-  },
-};
-
-// Export a function to get colors based on theme
-export const getColors = (isDark: boolean = false) => {
-  return isDark ? DarkColors : Colors;
-};
-
-// Legacy support for existing code
-export const LegacyColors = {
-  light: {
-    text: Colors.text.primary,
-    background: Colors.background,
-    tint: Colors.primary,
-    icon: Colors.gray[500],
-    tabIconDefault: Colors.tabBar.iconDefault,
-    tabIconSelected: Colors.tabBar.iconSelected,
-  },
-  dark: {
-    text: DarkColors.text.primary,
-    background: DarkColors.background,
-    tint: DarkColors.primary,
-    icon: DarkColors.gray[500],
-    tabIconDefault: DarkColors.tabBar.iconDefault,
-    tabIconSelected: DarkColors.tabBar.iconSelected,
-  },
-};
+// Export for any legacy references
+export const LightColors = Colors;
+export const DarkColors = Colors;
+export const getColors = () => Colors;

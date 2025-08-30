@@ -170,11 +170,12 @@ export default function HomeScreen() {
       <Ionicons 
         name={item.icon as any} 
         size={24} 
-        color={selectedCategory === item.id ? Colors.white : Colors.gray[600]} 
+        color={selectedCategory === item.id ? Colors.white : Colors.gray[600]}
       />
       <Text style={[
         styles.categoryText,
-        selectedCategory === item.id && styles.categoryTextActive
+        selectedCategory === item.id && styles.categoryTextActive,
+        { color: selectedCategory === item.id ? Colors.white : Colors.text.secondary }
       ]}>
         {item.name}
       </Text>
@@ -193,11 +194,11 @@ export default function HomeScreen() {
         <View style={styles.recipeMetaContainer}>
           <View style={styles.recipeMeta}>
             <Ionicons name="time-outline" size={14} color={Colors.gray[500]} />
-            <Text style={styles.recipeMetaText}>{item.time}</Text>
+            <Text style={[styles.recipeMetaText, { color: Colors.text.tertiary }]}>{item.time}</Text>
           </View>
           <View style={styles.recipeMeta}>
             <Ionicons name="fitness-outline" size={14} color={Colors.gray[500]} />
-            <Text style={styles.recipeMetaText}>{item.difficulty}</Text>
+            <Text style={[styles.recipeMetaText, { color: Colors.text.tertiary }]}>{item.difficulty}</Text>
           </View>
         </View>
       </View>
@@ -218,6 +219,9 @@ export default function HomeScreen() {
     </TouchableOpacity>
   );
 
+  // Create styles
+  const styles = createStyles();
+  
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <ScrollView 
@@ -314,11 +318,11 @@ export default function HomeScreen() {
               contentContainerStyle={styles.recipesList}
             />
           </View>
-        ) : (
+          ) : (
           <View style={styles.section}>
             <View style={styles.emptyContainer}>
               <Ionicons name="search-outline" size={48} color={Colors.gray[400]} />
-              <Text style={styles.emptyText}>No recipes found for this filter</Text>
+              <Text style={[styles.emptyText, { color: Colors.text.secondary }]}>No recipes found for this filter</Text>
             </View>
           </View>
         )}
@@ -403,7 +407,7 @@ export default function HomeScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+  const createStyles = () => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.background,
