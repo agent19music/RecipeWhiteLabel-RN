@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="assets/preview.png" alt="Kitchen Assistant App Preview" width="100%" />
+  <img src="https://pub-c6a134c8e1fd4881a475bf80bc0717ba.r2.dev/Untitled%20design.jpg" alt="Kitchen Assistant App Preview" width="100%" />
   
   # 🍳 Kitchen Assistant - White Label Recipe App
   
