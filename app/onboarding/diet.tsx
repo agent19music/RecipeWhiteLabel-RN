@@ -1,15 +1,15 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { ScrollView, View, Text, StyleSheet, Animated, Dimensions } from 'react-native';
-import { theme, useTheme } from '../../theme';
-import ModernChip from '../../components/ModernChip';
-import ModernButton from '../../components/ModernButton';
-import ModernProgress from '../../components/ModernProgress';
-import { useRouter } from 'expo-router';
-import { Diet } from '../../data/types';  // TODO: fix this
-import { useAppState } from '../../context/AppState';
-import { track } from '../../utils/analytics';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+import React, { useEffect, useRef, useState } from 'react';
+import { Animated, Dimensions, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import AppleProgressIndicator from '../../components/AppleProgressIndicator';
+import ModernButton from '../../components/ModernButton';
+import ModernChip from '../../components/ModernChip';
+import { useAppState } from '../../context/AppState';
+import { Diet } from '../../data/types'; // TODO: fix this
+import { theme, useTheme } from '../../theme';
+import { track } from '../../utils/analytics';
 
 const { width } = Dimensions.get('window');
 
@@ -96,6 +96,10 @@ const styles = StyleSheet.create({
     bottom: theme.space.xl,
     gap: theme.space.sm,
   },
+  actions: {
+    gap: theme.space.sm,
+    marginTop: theme.space.lg,
+  },
 });
 
 export default function DietScreen(){
@@ -122,7 +126,7 @@ export default function DietScreen(){
         useNativeDriver: true,
       }),
     ]).start();
-  }, []);
+  }, [fadeAnim, slideAnim]);
 
   const toggle = (k: Diet) => {
     setSelected((prev) => {
@@ -134,7 +138,7 @@ export default function DietScreen(){
 
   const handleNext = () => {
     const diets = Array.from(selected);
-    setPrefs((p: { diets: Diet[] }) => ({ ...p, diets }));
+    setPrefs((p) => ({ ...p, diets }));
     track('onboarding_step_complete', { step: 2, diets });
     router.push('/onboarding/allergies');
   };
@@ -159,19 +163,14 @@ export default function DietScreen(){
             }
           ]}
         >
-          <View style={styles.progressContainer}>
-            <ModernButton
-              title=""
-              onPress={handleBack}
-              variant="ghost"
-              size="small"
-              icon={<Ionicons name="arrow-back" size={24} color={palette.text} />}
-              style={styles.backButton}
-            />
-            <View style={styles.progressBar}>
-              <ModernProgress total={7} current={2} showLabel={true} />
-            </View>
-          </View>
+          <ModernButton
+            title=""
+            onPress={handleBack}
+            variant="ghost"
+            size="small"
+            icon={<Ionicons name="arrow-back" size={24} color={palette.text} />}
+            style={styles.backButton}
+          />
           
           <Text accessibilityRole="header" style={[styles.title, { color: palette.text }]}>
             Dietary Preferences
@@ -182,52 +181,30 @@ export default function DietScreen(){
         </Animated.View>
 
         <View style={styles.optionsContainer}>
-          {dietOptions.map((opt, index) => {
-            const cardAnim = useRef(new Animated.Value(0)).current;
-            const cardSlide = useRef(new Animated.Value(20)).current;
-            
-            useEffect(() => {
-              Animated.parallel([
-                Animated.timing(cardAnim, {
-                  toValue: 1,
-                  duration: 400,
-                  delay: index * 50,
-                  useNativeDriver: true,
-                }),
-                Animated.spring(cardSlide, {
-                  toValue: 0,
-                  friction: 8,
-                  delay: index * 50,
-                  useNativeDriver: true,
-                }),
-              ]).start();
-            }, []);
-
-            return (
-              <Animated.View
-                key={opt.key}
-                style={[
-                  styles.optionCard,
-                  {
-                    opacity: cardAnim,
-                    transform: [{ translateY: cardSlide }],
-                  },
-                ]}
-              >
-                <ModernChip 
-                  label={opt.label}
-                  icon={opt.icon}
-                  selected={selected.has(opt.key)} 
-                  onToggle={() => toggle(opt.key)} 
-                  accessibilityLabel={`Diet ${opt.label}`}
-                  style={styles.chip}
-                />
-                <Text style={[styles.optionDesc, { color: palette.subtext }]}>
-                  {opt.description}
-                </Text>
-              </Animated.View>
-            );
-          })}
+          {dietOptions.map((opt, index) => (
+            <Animated.View
+              key={opt.key}
+              style={[
+                styles.optionCard,
+                {
+                  opacity: fadeAnim,
+                  transform: [{ translateY: slideAnim }],
+                },
+              ]}
+            >
+              <ModernChip 
+                label={opt.label}
+                icon={opt.icon}
+                selected={selected.has(opt.key)} 
+                onToggle={() => toggle(opt.key)} 
+                accessibilityLabel={`Diet ${opt.label}`}
+                style={styles.chip}
+              />
+              <Text style={[styles.optionDesc, { color: palette.subtext }]}>
+                {opt.description}
+              </Text>
+            </Animated.View>
+          ))}
         </View>
 
         {selected.size > 0 && (
@@ -250,22 +227,26 @@ export default function DietScreen(){
           }
         ]}
       >
-        <ModernButton 
-          title="Continue" 
-          onPress={handleNext}
-          variant="primary"
-          size="large"
-          disabled={selected.size === 0}
-          accessibilityLabel="Next to allergies"
-        />
-        {selected.size === 0 && (
+        <AppleProgressIndicator total={7} current={1} />
+        
+        <View style={styles.actions}>
           <ModernButton 
-            title="Skip this step" 
+            title="Continue" 
             onPress={handleNext}
-            variant="ghost"
-            accessibilityLabel="Skip dietary preferences"
+            variant="primary"
+            size="large"
+            disabled={selected.size === 0}
+            accessibilityLabel="Next to allergies"
           />
-        )}
+          {selected.size === 0 && (
+            <ModernButton 
+              title="Skip this step" 
+              onPress={handleNext}
+              variant="ghost"
+              accessibilityLabel="Skip dietary preferences"
+            />
+          )}
+        </View>
       </Animated.View>
     </SafeAreaView>
   );

@@ -1,5 +1,8 @@
+import ChallengeCard from '@/components/ChallengeCard';
 import CommunityRecipeCard from '@/components/CommunityRecipeCard';
+import SubmissionCard from '@/components/SubmissionCard';
 import { Colors } from '@/constants/Colors';
+import { Challenge, ChallengeSubmission, getActiveChallenge, getTrendingSubmissions } from '@/data/challenges';
 import { getCommunityRecipes, getViralRecipes } from '@/data/community-recipes';
 import { Recipe } from '@/data/types';
 import { track } from '@/utils/analytics';
@@ -9,12 +12,12 @@ import { useRouter } from 'expo-router';
 import React, { useRef, useState } from 'react';
 import {
     Alert,
+    Animated,
     Dimensions,
     FlatList,
-    Linking,
+    ScrollView,
     StyleSheet,
     Text,
-    TextInput,
     TouchableOpacity,
     View,
 } from 'react-native';
@@ -22,16 +25,40 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 const { width } = Dimensions.get('window');
 
+type TabType = 'challenges' | 'social';
 type FilterType = 'all' | 'viral' | 'recent' | 'favorites';
 
 export default function CommunityRecipesScreen() {
   const router = useRouter();
+  const [activeTab, setActiveTab] = useState<TabType>('challenges');
   const [recipes] = useState<Recipe[]>(getCommunityRecipes());
   const [filteredRecipes, setFilteredRecipes] = useState<Recipe[]>(recipes);
   const [activeFilter, setActiveFilter] = useState<FilterType>('all');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
   const flatListRef = useRef<FlatList>(null);
+  const submissionsFlatListRef = useRef<FlatList>(null);
+  
+  // Challenge data
+  const activeChallenge = getActiveChallenge();
+  const trendingSubmissions = getTrendingSubmissions();
+
+  const tabIndicatorAnimation = useRef(new Animated.Value(0)).current;
+
+  const switchTab = (tab: TabType) => {
+    if (tab === activeTab) return;
+    
+    setActiveTab(tab);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    
+    const toValue = tab === 'challenges' ? 0 : 1;
+    Animated.spring(tabIndicatorAnimation, {
+      toValue,
+      useNativeDriver: true,
+      tension: 100,
+      friction: 8,
+    }).start();
+
+    track('community_tab_switched', { tab });
+  };
 
   const filters: { key: FilterType; label: string; icon: string }[] = [
     { key: 'all', label: 'All', icon: 'grid-outline' },
@@ -49,25 +76,13 @@ export default function CommunityRecipesScreen() {
         filtered = getViralRecipes();
         break;
       case 'recent':
-        // Sort by creation date (mock implementation)
         filtered = filtered.sort((a, b) => b.id.localeCompare(a.id));
         break;
       case 'favorites':
-        // Filter by high ratings
         filtered = filtered.filter(recipe => (recipe.details?.rating ?? 0) >= 4.5);
         break;
       default:
-        // All recipes
         break;
-    }
-
-    // Apply search filter if active
-    if (searchQuery) {
-      filtered = filtered.filter(recipe =>
-        recipe.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        recipe.author?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        recipe.tags?.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()))
-      );
     }
 
     setFilteredRecipes(filtered);
@@ -75,104 +90,207 @@ export default function CommunityRecipesScreen() {
     track('community_recipes_filtered', { filter: filterType, resultCount: filtered.length });
   };
 
-  const handleSearch = (query: string) => {
-    setSearchQuery(query);
-    let filtered = [...recipes];
-
-    // Apply current filter first
-    if (activeFilter !== 'all') {
-      applyFilter(activeFilter);
-      return;
-    }
-
-    // Apply search
-    if (query) {
-      filtered = filtered.filter(recipe =>
-        recipe.title.toLowerCase().includes(query.toLowerCase()) ||
-        recipe.author?.toLowerCase().includes(query.toLowerCase()) ||
-        recipe.tags?.some(tag => tag.toLowerCase().includes(query.toLowerCase()))
-      );
-    }
-
-    setFilteredRecipes(filtered);
-    track('community_recipes_searched', { query, resultCount: filtered.length });
-  };
-
   const handleRecipePress = (recipe: Recipe) => {
     router.push(`/recipe/${recipe.id}`);
     track('community_recipe_opened', { recipeId: recipe.id, author: recipe.author });
   };
 
-  const handleShare = (recipe: Recipe) => {
-    track('community_recipe_shared', { recipeId: recipe.id, author: recipe.author });
+  const handleChallengePress = (challenge: Challenge) => {
+    Alert.alert(
+      challenge.name,
+      challenge.description,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'View Details', onPress: () => track('challenge_details_viewed', { challengeId: challenge.id }) }
+      ]
+    );
   };
 
-  const handleSave = (recipe: Recipe) => {
-    track('community_recipe_saved', { recipeId: recipe.id, author: recipe.author });
-  };
-
-  const handleViewCreator = (recipe: Recipe) => {
-    if (recipe.sourceUrl) {
-      Alert.alert(
-        `Follow ${recipe.author}`,
-        `Visit ${recipe.author}'s ${recipe.socialMedia?.platform} profile?`,
-        [
-          { text: 'Cancel', style: 'cancel' },
-          {
-            text: 'Visit Profile',
-            onPress: () => {
-              Linking.openURL(recipe.sourceUrl!);
-              track('community_creator_profile_visited', { 
-                author: recipe.author,
-                platform: recipe.socialMedia?.platform 
-              });
-            }
+  const handleJoinChallenge = (challenge: Challenge) => {
+    Alert.alert(
+      'Join Challenge',
+      `Are you ready to participate in ${challenge.name}? Show off your cooking skills and win amazing prizes!`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Join Now',
+          onPress: () => {
+            track('challenge_joined', { challengeId: challenge.id });
+            Alert.alert('Success!', 'You have joined the challenge! Start creating your submission.');
           }
-        ]
-      );
-    }
+        }
+      ]
+    );
   };
 
-  const refreshRecipes = () => {
-    setIsLoading(true);
-    // Simulate API call
-    setTimeout(() => {
-      setIsLoading(false);
-      applyFilter(activeFilter);
-    }, 1000);
+  const handleSubmissionPress = (submission: ChallengeSubmission) => {
+    Alert.alert(
+      submission.title,
+      `By ${submission.author}\n\n${submission.description || 'View full recipe and cooking details.'}`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'View Recipe', onPress: () => track('submission_viewed', { submissionId: submission.id }) }
+      ]
+    );
+  };
+
+  const handleSubmissionLike = (submission: ChallengeSubmission) => {
+    track('submission_liked', { submissionId: submission.id });
+  };
+
+  const handleSubmissionComment = (submission: ChallengeSubmission) => {
+    Alert.alert('Comments', 'View and add comments for this submission');
+    track('submission_comment_viewed', { submissionId: submission.id });
   };
 
   const renderHeader = () => (
     <View style={styles.header}>
-      <Text style={styles.headerTitle}>Community Recipes</Text>
+      <Text style={styles.headerTitle}>Community</Text>
       <Text style={styles.headerSubtitle}>
-        Viral recipes from your favorite Kenyan TikTok creators
+        Join challenges and discover viral recipes
       </Text>
     </View>
   );
 
-  const renderSearchBar = () => (
-    <View style={styles.searchContainer}>
-      <Ionicons name="search" size={20} color={Colors.gray[400]} />
-      <TextInput
-        style={styles.searchInput}
-        placeholder="Search recipes or creators..."
-        placeholderTextColor={Colors.gray[400]}
-        value={searchQuery}
-        onChangeText={handleSearch}
-      />
-      {searchQuery && (
-        <TouchableOpacity
-          onPress={() => handleSearch('')}
-          style={styles.clearButton}
-        >
-          <Ionicons name="close-circle" size={20} color={Colors.gray[400]} />
-        </TouchableOpacity>
+  const renderTabs = () => {
+    const indicatorTranslateX = tabIndicatorAnimation.interpolate({
+      inputRange: [0, 1],
+      outputRange: [0, width * 0.5 - 40],
+    });
+
+    return (
+      <View style={styles.tabsContainer}>
+        <View style={styles.tabsWrapper}>
+          <TouchableOpacity
+            style={[styles.tab, activeTab === 'challenges' && styles.tabActive]}
+            onPress={() => switchTab('challenges')}
+          >
+            <Ionicons 
+              name="trophy" 
+              size={20} 
+              color={activeTab === 'challenges' ? Colors.primary : Colors.text.secondary} 
+            />
+            <Text style={[
+              styles.tabText,
+              activeTab === 'challenges' && styles.tabTextActive
+            ]}>
+              Challenges
+            </Text>
+            {activeChallenge && (
+              <View style={styles.activeIndicator} />
+            )}
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.tab, activeTab === 'social' && styles.tabActive]}
+            onPress={() => switchTab('social')}
+          >
+            <Ionicons 
+              name="people" 
+              size={20} 
+              color={activeTab === 'social' ? Colors.primary : Colors.text.secondary} 
+            />
+            <Text style={[
+              styles.tabText,
+              activeTab === 'social' && styles.tabTextActive
+            ]}>
+              Social Feed
+            </Text>
+          </TouchableOpacity>
+
+          <Animated.View
+            style={[
+              styles.tabIndicator,
+              {
+                transform: [{ translateX: indicatorTranslateX }],
+              },
+            ]}
+          />
+        </View>
+      </View>
+    );
+  };
+
+  const renderChallengesContent = () => (
+    <ScrollView 
+      style={styles.challengesContent}
+      showsVerticalScrollIndicator={false}
+      bounces={true}
+    >
+      {/* Active Challenge Hero */}
+      {activeChallenge && (
+        <View style={styles.activeChallengeSection}>
+          <Text style={styles.sectionTitle}>Active Challenge</Text>
+          <ChallengeCard
+            challenge={activeChallenge}
+            onPress={() => handleChallengePress(activeChallenge)}
+            onJoin={() => handleJoinChallenge(activeChallenge)}
+          />
+        </View>
       )}
-    </View>
+
+      {/* Trending Submissions */}
+      <View style={styles.submissionsSection}>
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Trending Submissions</Text>
+          <TouchableOpacity>
+            <Text style={styles.seeAllText}>See all</Text>
+          </TouchableOpacity>
+        </View>
+        
+        <FlatList
+          ref={submissionsFlatListRef}
+          data={trendingSubmissions}
+          renderItem={({ item }) => (
+            <SubmissionCard
+              submission={item}
+              onPress={() => handleSubmissionPress(item)}
+              onLike={() => handleSubmissionLike(item)}
+              onComment={() => handleSubmissionComment(item)}
+            />
+          )}
+          keyExtractor={(item) => item.id.toString()}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.submissionsList}
+          snapToInterval={width * 0.85 + 16}
+          decelerationRate="fast"
+          snapToAlignment="start"
+        />
+      </View>
+
+      {/* Submit Your Own */}
+      <TouchableOpacity
+        style={styles.submitPrompt}
+        onPress={() => {
+          Alert.alert(
+            'Submit Your Recipe',
+            'Ready to join the challenge? Submit your amazing creation!',
+            [
+              { text: 'Cancel', style: 'cancel' },
+              { text: 'Start Submission', onPress: () => track('submission_started') }
+            ]
+          );
+        }}
+      >
+        <View style={styles.submitPromptContent}>
+          <View style={styles.submitIcon}>
+            <Ionicons name="camera" size={24} color={Colors.primary} />
+          </View>
+          <View style={styles.submitTextContainer}>
+            <Text style={styles.submitTitle}>Submit Your Entry</Text>
+            <Text style={styles.submitSubtitle}>Share your recipe and win prizes!</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color={Colors.text.secondary} />
+        </View>
+      </TouchableOpacity>
+      
+      {/* Add some bottom padding for FAB */}
+      <View style={{ height: 100 }} />
+    </ScrollView>
   );
 
-  const renderFilters = () => (
+  const renderSocialFilters = () => (
     <View style={styles.filtersContainer}>
       <FlatList
         data={filters}
@@ -226,36 +344,42 @@ export default function CommunityRecipesScreen() {
     </View>
   );
 
-  const renderEmptyState = () => (
-    <View style={styles.emptyState}>
-      <MaterialCommunityIcons name="chef-hat" size={64} color={Colors.gray[300]} />
-      <Text style={styles.emptyTitle}>No recipes found</Text>
-      <Text style={styles.emptySubtitle}>
-        {searchQuery
-          ? 'Try adjusting your search terms'
-          : 'Try changing your filter selection'}
-      </Text>
-      {searchQuery && (
-        <TouchableOpacity
-          style={styles.clearSearchButton}
-          onPress={() => handleSearch('')}
-        >
-          <Text style={styles.clearSearchText}>Clear Search</Text>
-        </TouchableOpacity>
-      )}
-    </View>
-  );
-
-  const renderRecipeCard = ({ item, index }: { item: Recipe; index: number }) => (
-    <View style={[styles.cardContainer, { marginLeft: index === 0 ? 20 : 0 }]}>
-      <CommunityRecipeCard
-        recipe={item}
-        onPress={() => handleRecipePress(item)}
-        onShare={() => handleShare(item)}
-        onSave={() => handleSave(item)}
-        onViewCreator={() => handleViewCreator(item)}
+  const renderSocialContent = () => (
+    <ScrollView 
+      style={styles.socialContent}
+      showsVerticalScrollIndicator={false}
+      bounces={true}
+    >
+      {renderSocialFilters()}
+      {renderStatsBar()}
+      
+      <FlatList
+        ref={flatListRef}
+        data={filteredRecipes}
+        renderItem={({ item, index }) => (
+          <View style={[styles.cardContainer, { marginLeft: index === 0 ? 20 : 0 }]}>
+            <CommunityRecipeCard
+              recipe={item}
+              onPress={() => handleRecipePress(item)}
+              onShare={() => track('community_recipe_shared', { recipeId: item.id })}
+              onSave={() => track('community_recipe_saved', { recipeId: item.id })}
+              onViewCreator={() => {}}
+            />
+          </View>
+        )}
+        keyExtractor={(item) => item.id}
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.recipesList}
+        snapToInterval={width * 0.85 + 16}
+        decelerationRate="fast"
+        snapToAlignment="start"
+        scrollEnabled={true}
       />
-    </View>
+      
+      {/* Add some bottom padding for FAB */}
+      <View style={{ height: 100 }} />
+    </ScrollView>
   );
 
   return (
@@ -264,49 +388,36 @@ export default function CommunityRecipesScreen() {
         {/* Fixed Header Section */}
         <View style={styles.fixedHeader}>
           {renderHeader()}
-          {renderSearchBar()}
-          {renderFilters()}
-          {renderStatsBar()}
+          {renderTabs()}
         </View>
         
-        {/* Scrollable Recipe Cards */}
-        <FlatList
-          ref={flatListRef}
-          data={filteredRecipes}
-          renderItem={renderRecipeCard}
-          keyExtractor={(item) => item.id}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.recipesList}
-          snapToInterval={width * 0.85 + 16}
-          decelerationRate="fast"
-          snapToAlignment="start"
-          ListEmptyComponent={renderEmptyState()}
-          onRefresh={refreshRecipes}
-          refreshing={isLoading}
-          style={styles.recipeFlatList}
-        />
-
+        {/* Tab Content */}
+        <View style={styles.tabContent}>
+          {activeTab === 'challenges' ? renderChallengesContent() : renderSocialContent()}
+        </View>
       </View>
       
-      {/* Quick Actions FAB */}
-      <View style={styles.fabContainer}>
-        <TouchableOpacity
-          style={styles.fab}
-          onPress={() => {
-            Alert.alert(
-              'Submit Recipe',
-              'Want to share your viral recipe? Submit your TikTok video for a chance to be featured!',
-              [
-                { text: 'Cancel', style: 'cancel' },
-                { text: 'Submit', onPress: () => track('recipe_submission_interest') }
-              ]
-            );
-          }}
-        >
-          <Ionicons name="add" size={24} color={Colors.white} />
-        </TouchableOpacity>
-      </View>
+      {/* Floating Action Button */}
+      <TouchableOpacity
+        style={styles.fab}
+        onPress={() => {
+          const action = activeTab === 'challenges' ? 'Submit Entry' : 'Share Recipe';
+          const message = activeTab === 'challenges' 
+            ? 'Ready to submit your challenge entry?' 
+            : 'Share your amazing recipe with the community!';
+          
+          Alert.alert(
+            action,
+            message,
+            [
+              { text: 'Cancel', style: 'cancel' },
+              { text: action, onPress: () => track(`${activeTab}_submission_started`) }
+            ]
+          );
+        }}
+      >
+        <Ionicons name="add" size={24} color={Colors.white} />
+      </TouchableOpacity>
     </SafeAreaView>
   );
 }
@@ -321,10 +432,7 @@ const styles = StyleSheet.create({
   },
   fixedHeader: {
     backgroundColor: Colors.background,
-    paddingBottom: 10,
-  },
-  recipeFlatList: {
-    flex: 1,
+    paddingBottom: 0,
   },
   header: {
     paddingHorizontal: 20,
@@ -342,24 +450,142 @@ const styles = StyleSheet.create({
     color: Colors.text.secondary,
     lineHeight: 22,
   },
-  searchContainer: {
+  tabsContainer: {
+    paddingHorizontal: 20,
+    marginBottom: 16,
+  },
+  tabsWrapper: {
+    position: 'relative',
+    flexDirection: 'row',
+    backgroundColor: Colors.surface,
+    borderRadius: 12,
+    padding: 4,
+  },
+  tab: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.surface,
-    borderRadius: 16,
+    justifyContent: 'center',
+    paddingVertical: 12,
     paddingHorizontal: 16,
+    borderRadius: 8,
+    gap: 8,
+    position: 'relative',
+  },
+  tabActive: {
+    backgroundColor: Colors.white,
+    shadowColor: Colors.shadow.medium,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  tabText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: Colors.text.secondary,
+  },
+  tabTextActive: {
+    color: Colors.primary,
+  },
+  activeIndicator: {
+    position: 'absolute',
+    top: -2,
+    right: 8,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: Colors.success,
+  },
+  tabIndicator: {
+    position: 'absolute',
+    top: 4,
+    left: 4,
+    right: 4,
+    bottom: 4,
+    backgroundColor: Colors.white,
+    borderRadius: 8,
+    shadowColor: Colors.shadow.medium,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  tabContent: {
+    flex: 1,
+  },
+  challengesContent: {
+    flex: 1,
+    paddingTop: 8,
+  },
+  activeChallengeSection: {
+    marginBottom: 32,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: Colors.text.primary,
+    marginBottom: 16,
+    paddingHorizontal: 20,
+  },
+  submissionsSection: {
+    marginBottom: 32,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    marginBottom: 16,
+  },
+  seeAllText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: Colors.primary,
+  },
+  submissionsList: {
+    paddingLeft: 20,
+    paddingRight: 8,
+  },
+  submitPrompt: {
     marginHorizontal: 20,
     marginBottom: 20,
-    height: 50,
-    gap: 12,
+    backgroundColor: Colors.surface,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: Colors.primary,
+    borderStyle: 'solid',
   },
-  searchInput: {
+  submitPromptContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 24,
+    gap: 16,
+  },
+  submitIcon: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: Colors.primaryMuted,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  submitTextContainer: {
     flex: 1,
-    fontSize: 16,
-    color: Colors.text.primary,
   },
-  clearButton: {
-    padding: 4,
+  submitTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: Colors.text.primary,
+    marginBottom: 4,
+  },
+  submitSubtitle: {
+    fontSize: 14,
+    color: Colors.text.secondary,
+  },
+  socialContent: {
+    flex: 1,
+    paddingTop: 8,
   },
   filtersContainer: {
     marginBottom: 16,
@@ -416,45 +642,13 @@ const styles = StyleSheet.create({
   cardContainer: {
     marginRight: 16,
   },
-  emptyState: {
+  recipeFlatList: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 40,
-    paddingVertical: 60,
   },
-  emptyTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: Colors.text.primary,
-    marginTop: 16,
-    textAlign: 'center',
-  },
-  emptySubtitle: {
-    fontSize: 14,
-    color: Colors.text.secondary,
-    marginTop: 8,
-    textAlign: 'center',
-    lineHeight: 20,
-  },
-  clearSearchButton: {
-    marginTop: 20,
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    backgroundColor: Colors.primary,
-    borderRadius: 20,
-  },
-  clearSearchText: {
-    color: Colors.white,
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  fabContainer: {
+  fab: {
     position: 'absolute',
     bottom: 20,
     right: 20,
-  },
-  fab: {
     width: 56,
     height: 56,
     borderRadius: 28,

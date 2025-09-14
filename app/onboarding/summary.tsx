@@ -1,51 +1,243 @@
-import React from 'react';
-import { View, Text } from 'react-native';
-import { theme, useTheme } from '../../theme';
-import Button from '../../components/Button';
-import ProgressDots from '../../components/ProgressDots';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import React, { useEffect, useRef } from 'react';
+import { Animated, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import AppleProgressIndicator from '../../components/AppleProgressIndicator';
+import ModernButton from '../../components/ModernButton';
 import { useAppState } from '../../context/AppState';
-import Card from '../../components/Card';
+import { theme, useTheme } from '../../theme';
 import { track } from '../../utils/analytics';
 
 export default function SummaryScreen(){
   const { palette } = useTheme();
-  const r = useRouter();
+  const router = useRouter();
   const { prefs, setOnboarded } = useAppState();
+  
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(30)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 600,
+        useNativeDriver: true,
+      }),
+      Animated.spring(slideAnim, {
+        toValue: 0,
+        tension: 100,
+        friction: 8,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [fadeAnim, slideAnim]);
 
   const finish = () => {
     track('onboarding_finished', { prefs });
     setOnboarded(true);
-    r.replace('/(tabs)');
+    router.replace('/(tabs)');
   };
 
+  const summaryItems = [
+    {
+      icon: 'food-apple',
+      label: 'Diet Preferences',
+      value: (prefs.diets && prefs.diets.length > 0) ? prefs.diets.join(', ') : 'No restrictions',
+    },
+    {
+      icon: 'alert-circle',
+      label: 'Allergies',
+      value: (prefs.allergies && prefs.allergies.length > 0) ? prefs.allergies.join(', ') : 'None',
+    },
+    {
+      icon: 'target',
+      label: 'Goals',
+      value: (prefs.goals && prefs.goals.length > 0) ? prefs.goals.join(', ') : 'General wellness',
+    },
+    {
+      icon: 'scale-balance',
+      label: 'Measurement Units',
+      value: prefs.unitSystem || 'Metric',
+    },
+    {
+      icon: 'home-group',
+      label: 'Household Size',
+      value: `${prefs.householdSize || 2} ${(prefs.householdSize || 2) === 1 ? 'person' : 'people'}`,
+    },
+    {
+      icon: 'wallet',
+      label: 'Weekly Budget',
+      value: `KES ${(prefs.weeklyBudgetKES || 3000).toLocaleString()}`,
+    },
+  ];
+
   return (
-    <View style={{ flex: 1, backgroundColor: palette.bg, padding: 16 }}>
-      <ProgressDots total={7} index={6} />
-      <Text accessibilityRole="header" style={{ fontSize: 28, fontWeight: '800', color: palette.text, marginTop: 16 }}>Summary</Text>
-      <Card style={{ marginTop: 16 }}>
-        <Text style={{ color: palette.text, fontWeight: '700' }}>Diet</Text>
-        <Text style={{ color: palette.subtext }}>{(prefs.diets || []).join(', ') || 'None'}</Text>
-        <View style={{ height: 8 }} />
-        <Text style={{ color: palette.text, fontWeight: '700' }}>Allergies</Text>
-        <Text style={{ color: palette.subtext }}>{(prefs.allergies || []).join(', ') || 'None'}</Text>
-        <View style={{ height: 8 }} />
-        <Text style={{ color: palette.text, fontWeight: '700' }}>Goals</Text>
-        <Text style={{ color: palette.subtext }}>{(prefs.goals || []).join(', ') || 'None'}</Text>
-        <View style={{ height: 8 }} />
-        <Text style={{ color: palette.text, fontWeight: '700' }}>Units</Text>
-        <Text style={{ color: palette.subtext }}>{prefs.unitSystem}</Text>
-        <View style={{ height: 8 }} />
-        <Text style={{ color: palette.text, fontWeight: '700' }}>Household</Text>
-        <Text style={{ color: palette.subtext }}>{prefs.householdSize}</Text>
-        <View style={{ height: 8 }} />
-        <Text style={{ color: palette.text, fontWeight: '700' }}>Weekly budget</Text>
-            <Text style={{ color: palette.subtext }}>KES {prefs.weeklyBudgetKES}</Text>
-      </Card>
-      <View style={{ marginTop: 'auto' }}>
-        <Button title="Finish" onPress={finish} accessibilityLabel="Finish onboarding" />
-        </View>
-    </View>
+    <SafeAreaView style={[styles.container, { backgroundColor: palette.bg }]} edges={['top', 'bottom']}>
+      <ScrollView 
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        <Animated.View 
+          style={[
+            styles.header,
+            {
+              opacity: fadeAnim,
+              transform: [{ translateY: slideAnim }],
+            }
+          ]}
+        >
+          <View style={[styles.completionIcon, { backgroundColor: palette.primary }]}>
+            <MaterialCommunityIcons name="check" size={32} color="#FFFFFF" />
+          </View>
+          
+          <Text style={[styles.title, { color: palette.text }]}>
+            You&apos;re All Set!
+          </Text>
+          <Text style={[styles.subtitle, { color: palette.subtext }]}>
+            Here&apos;s a summary of your preferences. You can always change these later in settings.
+          </Text>
+        </Animated.View>
+
+        <Animated.View 
+          style={[
+            styles.summaryContainer,
+            {
+              opacity: fadeAnim,
+              transform: [{ translateY: slideAnim }],
+            }
+          ]}
+        >
+          {summaryItems.map((item, index) => (
+            <View key={index} style={[styles.summaryItem, { backgroundColor: palette.surface }]}>
+              <View style={[styles.iconContainer, { backgroundColor: `${palette.primary}15` }]}>
+                <MaterialCommunityIcons 
+                  name={item.icon as any} 
+                  size={20} 
+                  color={palette.primary} 
+                />
+              </View>
+              
+              <View style={styles.itemContent}>
+                <Text style={[styles.itemLabel, { color: palette.subtext }]}>
+                  {item.label}
+                </Text>
+                <Text style={[styles.itemValue, { color: palette.text }]}>
+                  {item.value}
+                </Text>
+              </View>
+            </View>
+          ))}
+        </Animated.View>
+      </ScrollView>
+
+      {/* Bottom Section */}
+      <View style={styles.bottom}>
+        <AppleProgressIndicator total={7} current={6} />
+        
+        <Animated.View 
+          style={[
+            styles.actions,
+            { opacity: fadeAnim }
+          ]}
+        >
+          <ModernButton 
+            title="Start Cooking!" 
+            onPress={finish}
+            variant="primary"
+            size="large"
+          />
+        </Animated.View>
+      </View>
+    </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingHorizontal: theme.space.xl,
+    paddingTop: theme.space.xl,
+    paddingBottom: theme.space.xxl,
+  },
+  header: {
+    alignItems: 'center',
+    marginBottom: theme.space.xxl,
+  },
+  completionIcon: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: theme.space.xl,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  title: {
+    fontSize: 32,
+    fontWeight: '700',
+    textAlign: 'center',
+    marginBottom: theme.space.sm,
+    letterSpacing: -0.5,
+  },
+  subtitle: {
+    fontSize: 17,
+    lineHeight: 24,
+    textAlign: 'center',
+    opacity: 0.8,
+    paddingHorizontal: theme.space.sm,
+  },
+  summaryContainer: {
+    gap: theme.space.md,
+  },
+  summaryItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    padding: theme.space.lg,
+    borderRadius: theme.radius.lg,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.02,
+    shadowRadius: 4,
+    elevation: 1,
+  },
+  iconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: theme.space.md,
+  },
+  itemContent: {
+    flex: 1,
+  },
+  itemLabel: {
+    fontSize: 14,
+    fontWeight: '500',
+    marginBottom: 4,
+  },
+  itemValue: {
+    fontSize: 16,
+    fontWeight: '600',
+    lineHeight: 20,
+  },
+  bottom: {
+    paddingHorizontal: theme.space.xl,
+    paddingBottom: theme.space.lg,
+  },
+  actions: {
+    marginTop: theme.space.lg,
+  },
+});
 

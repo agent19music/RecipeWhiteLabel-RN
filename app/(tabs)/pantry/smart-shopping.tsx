@@ -1,26 +1,36 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import { Colors } from '@/constants/Colors';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TextInput,
-  TouchableOpacity,
-  Image,
-  ActivityIndicator,
-  Linking,
-  Alert,
-  KeyboardAvoidingView,
-  Platform,
-  Modal,
-  FlatList,
+    ActivityIndicator,
+    Alert,
+    FlatList,
+    Image,
+    KeyboardAvoidingView,
+    Linking,
+    Platform,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import { Colors } from '@/constants/Colors';
-import * as Haptics from 'expo-haptics';
 import { track } from '../../../utils/analytics';
-import { debounce } from 'lodash';
+
+// Simple debounce function
+function debounce<T extends (...args: any[]) => any>(
+  func: T,
+  delay: number
+): (...args: Parameters<T>) => void {
+  let timeoutId: any;
+  return (...args: Parameters<T>) => {
+    clearTimeout(timeoutId);
+    timeoutId = setTimeout(() => func(...args), delay);
+  };
+}
 
 // Store configurations
 const STORES = {
@@ -29,7 +39,7 @@ const STORES = {
     icon: '🛒',
     color: '#004B93',
     baseUrl: 'https://www.carrefour.ke',
-    searchUrl: 'https://www.carrefour.ke/search?query=',
+    searchUrl: 'https://www.carrefour.ke/search?term=',
   },
   jumia: {
     name: 'Jumia',
@@ -37,6 +47,52 @@ const STORES = {
     color: '#F68B1E',
     baseUrl: 'https://www.jumia.co.ke',
     searchUrl: 'https://www.jumia.co.ke/catalog/?q=',
+  },
+  naivas: {
+    name: 'Naivas',
+    icon: '🏪',
+    color: '#006B3C',
+    baseUrl: 'https://naivas.online',
+    searchUrl: 'https://naivas.online/search?q=',
+  },
+  quickmart: {
+    name: 'QuickMart',
+    icon: '🛍️',
+    color: '#E60026',
+    baseUrl: 'https://quickmart.co.ke',
+    searchUrl: 'https://quickmart.co.ke/search?q=',
+  },
+};
+
+// Delivery service configurations
+const DELIVERY_SERVICES = {
+  glovo: {
+    name: 'Glovo',
+    icon: '🛵',
+    color: '#FFC244',
+    baseUrl: 'https://glovoapp.com/ke/nai/store/carrefour-sarit-centre/',
+    searchUrl: 'https://glovoapp.com/ke/nai/search?q=',
+  },
+  ubereats: {
+    name: 'Uber Eats',
+    icon: '🚗',
+    color: '#000000',
+    baseUrl: 'https://www.ubereats.com/ke/nairobi',
+    searchUrl: 'https://www.ubereats.com/ke/search?q=',
+  },
+  jumiaFood: {
+    name: 'Jumia Food',
+    icon: '🍔',
+    color: '#F68B1E',
+    baseUrl: 'https://food.jumia.co.ke',
+    searchUrl: 'https://food.jumia.co.ke/search?q=',
+  },
+  boltFood: {
+    name: 'Bolt Food',
+    icon: '⚡',
+    color: '#34D186',
+    baseUrl: 'https://food.bolt.eu/en-ke/city/nairobi',
+    searchUrl: 'https://food.bolt.eu/en-ke/search?q=',
   },
 };
 
@@ -117,7 +173,6 @@ export default function SmartShoppingPantry() {
   const [shoppingList, setShoppingList] = useState<ShoppingItem[]>([]);
   const [selectedStore, setSelectedStore] = useState<'all' | 'carrefour' | 'jumia'>('all');
   const [isSearching, setIsSearching] = useState(false);
-  const [checkoutModalVisible, setCheckoutModalVisible] = useState(false);
   const [suggestions, setSuggestions] = useState<string[]>([]);
 
   // Smart search function
@@ -126,13 +181,16 @@ export default function SmartShoppingPantry() {
     let results: Product[] = [];
     
     // Direct match
-    if (PRODUCT_DATABASE[normalizedQuery]) {
-      results = PRODUCT_DATABASE[normalizedQuery];
+    const productKeys = Object.keys(PRODUCT_DATABASE) as (keyof typeof PRODUCT_DATABASE)[];
+    const matchingKey = productKeys.find(key => key === normalizedQuery);
+    
+    if (matchingKey) {
+      results = PRODUCT_DATABASE[matchingKey];
     } else {
       // Fuzzy search
-      Object.entries(PRODUCT_DATABASE).forEach(([key, products]) => {
+      productKeys.forEach((key) => {
         if (key.includes(normalizedQuery) || normalizedQuery.includes(key)) {
-          results.push(...products);
+          results.push(...PRODUCT_DATABASE[key]);
         }
       });
     }
@@ -147,7 +205,7 @@ export default function SmartShoppingPantry() {
 
   // Debounced search
   const debouncedSearch = useCallback(
-    debounce((query: string) => {
+    (query: string) => {
       if (query.length > 1) {
         setIsSearching(true);
         const products = searchProducts(query);
@@ -169,7 +227,7 @@ export default function SmartShoppingPantry() {
         }
         setIsSearching(false);
       }
-    }, 500),
+    },
     [searchProducts]
   );
 
@@ -188,7 +246,8 @@ export default function SmartShoppingPantry() {
 
   const handleAddItem = () => {
     if (searchQuery.trim()) {
-      debouncedSearch(searchQuery);
+      const debouncedFn = debounce(() => debouncedSearch(searchQuery), 500);
+      debouncedFn();
     }
   };
 
@@ -231,11 +290,17 @@ export default function SmartShoppingPantry() {
       return;
     }
 
-    const searchTerms = items.map(item => item.query).join('+');
-    const url = STORES[store].searchUrl + searchTerms;
+    const searchTerms = items.map(item => item.query).join('%20');
+    const url = STORES[store].searchUrl + encodeURIComponent(searchTerms);
     
     Linking.openURL(url);
     track('checkout_initiated', { store, itemCount: items.length });
+  };
+
+  const handleDeliveryService = (service: keyof typeof DELIVERY_SERVICES) => {
+    const url = DELIVERY_SERVICES[service].baseUrl;
+    Linking.openURL(url);
+    track('delivery_service_opened', { service });
   };
 
   const renderShoppingItem = ({ item }: { item: ShoppingItem }) => (
@@ -260,7 +325,7 @@ export default function SmartShoppingPantry() {
             disabled={!product.inStock}
           >
             <Image source={{ uri: product.image }} style={styles.productImage} />
-            <View style={styles.storeTag} backgroundColor={STORES[product.store as keyof typeof STORES].color}>
+            <View style={[styles.storeTag, { backgroundColor: STORES[product.store as keyof typeof STORES].color }]}>
               <Text style={styles.storeTagText}>{STORES[product.store as keyof typeof STORES].icon}</Text>
             </View>
             <Text style={styles.productName} numberOfLines={2}>{product.name}</Text>
@@ -431,6 +496,46 @@ export default function SmartShoppingPantry() {
                 >
                   <Text style={styles.checkoutButtonText}>Shop at Jumia</Text>
                 </TouchableOpacity>
+              </View>
+
+              {/* Delivery Services */}
+              <View style={styles.deliverySection}>
+                <Text style={styles.deliverySectionTitle}>Quick Delivery Options</Text>
+                <Text style={styles.deliverySectionSubtitle}>Get your items delivered fast</Text>
+                
+                <View style={styles.deliveryButtons}>
+                  <TouchableOpacity
+                    style={[styles.deliveryButton, { borderColor: DELIVERY_SERVICES.glovo.color }]}
+                    onPress={() => handleDeliveryService('glovo')}
+                  >
+                    <Text style={styles.deliveryEmoji}>{DELIVERY_SERVICES.glovo.icon}</Text>
+                    <Text style={styles.deliveryName}>{DELIVERY_SERVICES.glovo.name}</Text>
+                  </TouchableOpacity>
+                  
+                  <TouchableOpacity
+                    style={[styles.deliveryButton, { borderColor: DELIVERY_SERVICES.ubereats.color }]}
+                    onPress={() => handleDeliveryService('ubereats')}
+                  >
+                    <Text style={styles.deliveryEmoji}>{DELIVERY_SERVICES.ubereats.icon}</Text>
+                    <Text style={styles.deliveryName}>{DELIVERY_SERVICES.ubereats.name}</Text>
+                  </TouchableOpacity>
+                  
+                  <TouchableOpacity
+                    style={[styles.deliveryButton, { borderColor: DELIVERY_SERVICES.jumiaFood.color }]}
+                    onPress={() => handleDeliveryService('jumiaFood')}
+                  >
+                    <Text style={styles.deliveryEmoji}>{DELIVERY_SERVICES.jumiaFood.icon}</Text>
+                    <Text style={styles.deliveryName}>{DELIVERY_SERVICES.jumiaFood.name}</Text>
+                  </TouchableOpacity>
+                  
+                  <TouchableOpacity
+                    style={[styles.deliveryButton, { borderColor: DELIVERY_SERVICES.boltFood.color }]}
+                    onPress={() => handleDeliveryService('boltFood')}
+                  >
+                    <Text style={styles.deliveryEmoji}>{DELIVERY_SERVICES.boltFood.icon}</Text>
+                    <Text style={styles.deliveryName}>{DELIVERY_SERVICES.boltFood.name}</Text>
+                  </TouchableOpacity>
+                </View>
               </View>
             </View>
           )}
@@ -701,5 +806,49 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     color: Colors.white,
+  },
+  deliverySection: {
+    marginTop: 24,
+    paddingTop: 20,
+    borderTopWidth: 1,
+    borderTopColor: Colors.border,
+  },
+  deliverySectionTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: Colors.text.primary,
+    textAlign: 'center',
+    marginBottom: 4,
+  },
+  deliverySectionSubtitle: {
+    fontSize: 14,
+    color: Colors.text.secondary,
+    textAlign: 'center',
+    marginBottom: 16,
+  },
+  deliveryButtons: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  deliveryButton: {
+    width: '48%',
+    backgroundColor: Colors.surface,
+    borderRadius: 12,
+    borderWidth: 2,
+    paddingVertical: 16,
+    paddingHorizontal: 12,
+    alignItems: 'center',
+    gap: 8,
+  },
+  deliveryEmoji: {
+    fontSize: 24,
+  },
+  deliveryName: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: Colors.text.primary,
+    textAlign: 'center',
   },
 });

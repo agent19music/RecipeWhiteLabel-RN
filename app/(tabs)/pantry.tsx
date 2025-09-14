@@ -1,26 +1,33 @@
-import React, { useState, useMemo } from 'react';
+import { Colors } from '@/constants/Colors';
+import { Ionicons, MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
+import { differenceInDays, parseISO } from 'date-fns';
+import * as Haptics from 'expo-haptics';
+import { useRouter } from 'expo-router';
+import React, { useMemo, useState } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  TextInput,
-  Image,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons, MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
-import { Colors } from '@/constants/Colors';
-import { differenceInDays, parseISO } from 'date-fns';
-import { useRouter } from 'expo-router';
-import * as Haptics from 'expo-haptics';
-import { track } from '../../utils/analytics';
+import PantryAddModal from '../../components/PantryAddModal';
+import PantryItemActionsModal from '../../components/PantryItemActionsModal';
 import { pantry as seedPantry } from '../../data/seed';
+import { PantryItem } from '../../data/types';
+import { track } from '../../utils/analytics';
 
 export default function PantryScreen() {
   const router = useRouter();
-  const [items, setItems] = useState(seedPantry);
+  const [items, setItems] = useState<PantryItem[]>(seedPantry);
   const [searchQuery, setSearchQuery] = useState('');
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [actionsModal, setActionsModal] = useState<{
+    visible: boolean;
+    item: PantryItem | null;
+  }>({ visible: false, item: null });
 
   // Sort items by expiry date
   const sortedItems = useMemo(() => {
@@ -28,17 +35,17 @@ export default function PantryScreen() {
     
     if (searchQuery) {
       filtered = filtered.filter(item =>
-        item.title.toLowerCase().includes(searchQuery.toLowerCase())
+        (item.title || item.name || '').toLowerCase().includes(searchQuery.toLowerCase())
       );
     }
     
     return filtered.sort((a, b) => {
-      const ad = a.expiresOn ? parseISO(a.expiresOn) : undefined;
-      const bd = b.expiresOn ? parseISO(b.expiresOn) : undefined;
+      const ad = a.expiresOn || a.expiryDate ? parseISO(a.expiresOn || a.expiryDate!) : undefined;
+      const bd = b.expiresOn || b.expiryDate ? parseISO(b.expiresOn || b.expiryDate!) : undefined;
       if (ad && bd) return ad.getTime() - bd.getTime();
       if (ad) return -1;
       if (bd) return 1;
-      return a.title.localeCompare(b.title);
+      return (a.title || a.name || '').localeCompare(b.title || b.name || '');
     });
   }, [items, searchQuery]);
 
@@ -50,12 +57,16 @@ export default function PantryScreen() {
 
   const stats = useMemo(() => {
     const expiringSoon = items.filter(it => {
-      const days = it.expiresOn ? differenceInDays(parseISO(it.expiresOn), new Date()) : 99;
+      const expiryDate = it.expiresOn || it.expiryDate;
+      if (!expiryDate) return false;
+      const days = differenceInDays(parseISO(expiryDate), new Date());
       return days <= 2;
     }).length;
 
     const fresh = items.filter(it => {
-      const days = it.expiresOn ? differenceInDays(parseISO(it.expiresOn), new Date()) : 99;
+      const expiryDate = it.expiresOn || it.expiryDate;
+      if (!expiryDate) return true;
+      const days = differenceInDays(parseISO(expiryDate), new Date());
       return days > 5;
     }).length;
 
@@ -66,6 +77,38 @@ export default function PantryScreen() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     track('smart_shopping_opened', {});
     router.push('/(tabs)/pantry/smart-shopping' as any);
+  };
+
+  const handleAddItems = (newItems: PantryItem[]) => {
+    setItems(prev => [...prev, ...newItems]);
+    track('pantry_items_added', { count: newItems.length });
+  };
+
+  const handleItemActions = (item: PantryItem) => {
+    setActionsModal({ visible: true, item });
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  };
+
+  const handleEditItem = (item: PantryItem) => {
+    // For now, just show an alert. In a full implementation, you'd open an edit modal
+    console.log('Edit item:', item);
+  };
+
+  const handleDeleteItem = (item: PantryItem) => {
+    setItems(prev => prev.filter(i => i.id !== item.id));
+    track('pantry_item_deleted', { itemName: item.title || item.name });
+  };
+
+  const handlePinItem = (item: PantryItem) => {
+    setItems(prev => prev.map(i => 
+      i.id === item.id ? { ...i, isPinned: !i.isPinned } : i
+    ));
+  };
+
+  const handleMarkLowStock = (item: PantryItem) => {
+    setItems(prev => prev.map(i => 
+      i.id === item.id ? { ...i, isLowStock: !i.isLowStock } : i
+    ));
   };
 
   return (
@@ -81,7 +124,8 @@ export default function PantryScreen() {
             style={styles.addButton}
             onPress={() => {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              track('pantry_add_item', {});
+              setShowAddModal(true);
+              track('pantry_add_modal_opened', {});
             }}
           >
             <Ionicons name="add" size={24} color={Colors.white} />
@@ -168,39 +212,48 @@ export default function PantryScreen() {
           {sortedItems.length > 0 ? (
             <View style={styles.itemsList}>
               {sortedItems.map(item => {
-                const days = item.expiresOn 
-                  ? differenceInDays(parseISO(item.expiresOn), new Date()) 
-                  : 99;
+                const expiryDate = item.expiresOn || item.expiryDate;
+                const days = expiryDate ? differenceInDays(parseISO(expiryDate), new Date()) : 99;
                 const expiryColor = getExpiryColor(days);
                 
                 return (
                   <TouchableOpacity 
                     key={item.id} 
-                    style={styles.itemCard}
+                    style={[
+                      styles.itemCard,
+                      item.isPinned && styles.pinnedItem,
+                      item.isLowStock && styles.lowStockItem,
+                    ]}
                     activeOpacity={0.7}
                     onPress={() => {
                       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                     }}
                   >
                     <View style={styles.itemInfo}>
-                      <Text style={styles.itemTitle}>{item.title}</Text>
+                      <View style={styles.itemTitleRow}>
+                        <Text style={styles.itemTitle}>{item.title || item.name}</Text>
+                        {item.isPinned && (
+                          <Ionicons name="bookmark" size={16} color={Colors.primary} />
+                        )}
+                      </View>
                       <Text style={styles.itemQuantity}>
-                        {item.qty} {item.unit}
+                        {item.qty || item.quantity} {item.unit}
+                        {item.isLowStock && (
+                          <Text style={styles.lowStockText}> • Low Stock</Text>
+                        )}
                       </Text>
                     </View>
                     <View style={styles.itemRight}>
                       <View style={[styles.expiryChip, { backgroundColor: expiryColor + '20' }]}>
                         <Text style={[styles.expiryText, { color: expiryColor }]}>
-                          {item.expiresOn 
+                          {expiryDate 
                             ? (days <= 0 ? 'Expired' : days === 1 ? '1 day' : `${days} days`)
                             : 'No expiry'}
                         </Text>
                       </View>
                       <TouchableOpacity 
                         style={styles.itemMenu}
-                        onPress={() => {
-                          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                        }}
+                        onPress={() => handleItemActions(item)}
                       >
                         <Ionicons name="ellipsis-vertical" size={18} color={Colors.text.secondary} />
                       </TouchableOpacity>
@@ -222,6 +275,23 @@ export default function PantryScreen() {
 
         <View style={styles.bottomSpacing} />
       </ScrollView>
+
+      {/* Modals */}
+      <PantryAddModal
+        visible={showAddModal}
+        onClose={() => setShowAddModal(false)}
+        onAddItems={handleAddItems}
+      />
+
+      <PantryItemActionsModal
+        visible={actionsModal.visible}
+        item={actionsModal.item}
+        onClose={() => setActionsModal({ visible: false, item: null })}
+        onEdit={handleEditItem}
+        onDelete={handleDeleteItem}
+        onPin={handlePinItem}
+        onMarkLowStock={handleMarkLowStock}
+      />
     </SafeAreaView>
   );
 }
@@ -269,7 +339,6 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   smartShoppingGradient: {
-    backgroundColor: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
     backgroundColor: '#5B63D3',
     padding: 20,
   },
@@ -411,15 +480,34 @@ const styles = StyleSheet.create({
   itemInfo: {
     flex: 1,
   },
+  itemTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 4,
+  },
   itemTitle: {
     fontSize: 16,
     fontWeight: '600',
     color: Colors.text.primary,
-    marginBottom: 4,
+    flex: 1,
   },
   itemQuantity: {
     fontSize: 14,
     color: Colors.text.secondary,
+  },
+  lowStockText: {
+    color: '#F59E0B',
+    fontWeight: '600',
+  },
+  pinnedItem: {
+    borderColor: Colors.primary,
+    borderWidth: 1,
+  },
+  lowStockItem: {
+    borderColor: '#F59E0B',
+    borderWidth: 1,
+    backgroundColor: '#FEF3C7',
   },
   itemRight: {
     flexDirection: 'row',

@@ -370,6 +370,21 @@ export default function HomeScreen() {
           </View>
           <View style={styles.quickAccessContainer}>
             <TouchableOpacity 
+              style={[styles.largeCard, { backgroundColor: '#FF6B6B' }]}
+              onPress={() => router.push('/food-logger')}
+              activeOpacity={0.95}
+            >
+              <View style={styles.largeCardContent}>
+                <MaterialCommunityIcons name="food-apple" size={40} color={Colors.white} />
+                <View style={styles.largeCardText}>
+                  <Text style={styles.largeCardTitle}>Track Your Meals</Text>
+                  <Text style={styles.largeCardSubtitle}>Log food & water intake</Text>
+                </View>
+                <Ionicons name="arrow-forward" size={24} color={Colors.white} />
+              </View>
+            </TouchableOpacity>
+
+            <TouchableOpacity 
               style={styles.largeCard}
               onPress={() => router.push('/discover')}
               activeOpacity={0.95}
@@ -403,6 +418,16 @@ export default function HomeScreen() {
 
         <View style={styles.bottomSpacing} />
       </ScrollView>
+
+      {/* Floating Action Button for Quick Meal Logging */}
+      <TouchableOpacity
+        style={styles.fab}
+        onPress={() => router.push('/food-logger')}
+        activeOpacity={0.9}
+      >
+        <MaterialCommunityIcons name="plus" size={28} color={Colors.white} />
+        <Text style={styles.fabText}>Log Meal</Text>
+      </TouchableOpacity>
     </SafeAreaView>
   );
 }
@@ -701,5 +726,27 @@ export default function HomeScreen() {
     fontSize: 16,
     color: Colors.text.secondary,
     marginTop: 16,
+  },
+  fab: {
+    position: 'absolute',
+    bottom: 80,
+    right: 20,
+    backgroundColor: '#FF6B6B',
+    borderRadius: 28,
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    shadowColor: Colors.shadow.dark,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  fabText: {
+    color: Colors.white,
+    fontSize: 15,
+    fontWeight: '600',
   },
 });

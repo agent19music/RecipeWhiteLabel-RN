@@ -1,13 +1,13 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Pressable, Animated } from 'react-native';
-import { theme, useTheme } from '../../theme';
-import ModernButton from '../../components/ModernButton';
-import AppleProgressIndicator from '../../components/AppleProgressIndicator';
-import { useRouter } from 'expo-router';
-import { useAppState } from '../../context/AppState';
-import { track } from '../../utils/analytics';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+import { useEffect, useRef, useState } from 'react';
+import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import AppleProgressIndicator from '../../components/AppleProgressIndicator';
+import ModernButton from '../../components/ModernButton';
+import { useAppState } from '../../context/AppState';
+import { theme, useTheme } from '../../theme';
+import { track } from '../../utils/analytics';
 
 export default function UnitsScreen(){
   const { palette } = useTheme();
