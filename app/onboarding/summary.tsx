@@ -6,13 +6,17 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import AppleProgressIndicator from '../../components/AppleProgressIndicator';
 import ModernButton from '../../components/ModernButton';
 import { useAppState } from '../../context/AppState';
+import { useAuth } from '../../context/AuthContext';
 import { theme, useTheme } from '../../theme';
 import { track } from '../../utils/analytics';
+import { UserPreferences } from '../../types/database';
+import { Alert } from 'react-native';
 
 export default function SummaryScreen(){
   const { palette } = useTheme();
   const router = useRouter();
   const { prefs, setOnboarded } = useAppState();
+  const { user, updatePreferences } = useAuth();
   
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
@@ -33,10 +37,52 @@ export default function SummaryScreen(){
     ]).start();
   }, [fadeAnim, slideAnim]);
 
-  const finish = () => {
+  const finish = async () => {
     track('onboarding_finished', { prefs });
-    setOnboarded(true);
-    router.replace('/(tabs)');
+    
+    try {
+      if (user) {
+        // Save preferences to database for authenticated users
+        const userPreferences: UserPreferences = {
+          diets: prefs.diets || ['omnivore'],
+          allergies: prefs.allergies || [],
+          goals: prefs.goals || ['general_health'],
+          unit_system: (prefs.unitSystem?.toLowerCase() === 'imperial' ? 'imperial' : 'metric') as 'metric' | 'imperial',
+          language: 'en',
+          theme: 'auto',
+          household_size: prefs.householdSize || 2,
+          weekly_budget_kes: prefs.weeklyBudgetKES || 3000,
+          cooking_skill_level: 'beginner',
+          kitchen_equipment: [],
+          meal_planning_enabled: true,
+          smart_suggestions_enabled: true,
+          nutrition_tracking_enabled: false,
+          notifications_enabled: true,
+          cuisine_preferences: ['Kenyan', 'International'],
+          spice_tolerance: 'medium'
+        };
+        
+        await updatePreferences(userPreferences);
+      } else {
+        // For guests, just mark as onboarded locally
+        setOnboarded(true);
+      }
+      
+      router.replace('/(tabs)');
+    } catch (error) {
+      console.error('Failed to save preferences:', error);
+      Alert.alert(
+        'Error',
+        'Failed to save your preferences. Please try again.',
+        [
+          { text: 'Try Again', onPress: finish },
+          { text: 'Skip', onPress: () => {
+            setOnboarded(true);
+            router.replace('/(tabs)');
+          }}
+        ]
+      );
+    }
   };
 
   const summaryItems = [

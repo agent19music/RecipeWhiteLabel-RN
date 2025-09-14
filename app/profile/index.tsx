@@ -14,7 +14,9 @@ import { Ionicons, MaterialCommunityIcons, MaterialIcons } from '@expo/vector-ic
 import { useRouter } from 'expo-router';
 import { Colors } from '@/constants/Colors';
 import { useAppState } from '@/context/AppState';
+import { useAuth } from '@/context/AuthContext';
 import { theme, useTheme } from '@/theme';
+import ProfileSetupBanner from '@/components/ProfileSetupBanner';
 
 const { width } = Dimensions.get('window');
 
@@ -22,6 +24,7 @@ export default function Profile() {
   const router = useRouter();
   const { palette } = useTheme();
   const { prefs } = useAppState();
+  const { user, profile, signOut } = useAuth();
   
   // State for settings
   const [notifications, setNotifications] = useState(true);
@@ -29,18 +32,18 @@ export default function Profile() {
   const [autoPlay, setAutoPlay] = useState(true);
   const [privateAccount, setPrivateAccount] = useState(false);
   
-  // Mock user data
+  // User data from auth or mock for guests
   const userData = {
-    name: 'John Doe',
-    email: 'john.doe@example.com',
-    avatar: null, // You can add an image URL here
-    joinDate: 'Member since Dec 2023',
-    recipesCount: 42,
-    savedCount: 128,
-    followersCount: 256,
-    followingCount: 89,
-    level: 'Home Chef',
-    points: 1250,
+    name: user ? (profile?.full_name || user.email?.split('@')[0] || 'User') : 'Guest User',
+    email: user?.email || 'guest@example.com',
+    avatar: profile?.avatar_url || null,
+    joinDate: user ? `Member since ${new Date(user.created_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}` : 'Guest User',
+    recipesCount: profile?.recipes_count || 0,
+    savedCount: 0, // TODO: Implement favorites count
+    followersCount: profile?.followers_count || 0,
+    followingCount: profile?.following_count || 0,
+    level: user ? 'Home Chef' : 'Guest',
+    points: 0,
   };
 
   const settingsSections = [
@@ -178,6 +181,33 @@ export default function Profile() {
         },
       ],
     },
+    // Add sign out section for authenticated users
+    ...(user ? [{
+      title: 'Account',
+      items: [
+        {
+          icon: 'exit-to-app',
+          title: 'Sign Out',
+          onPress: async () => {
+            try {
+              await signOut();
+              router.replace('/onboarding/start');
+            } catch (error) {
+              console.error('Sign out error:', error);
+            }
+          },
+        },
+      ],
+    }] : [{
+      title: 'Account',
+      items: [
+        {
+          icon: 'account-plus',
+          title: 'Sign In / Create Account',
+          onPress: () => router.push('/auth/signin'),
+        },
+      ],
+    }]),
   ];
 
   const achievementBadges = [
@@ -239,6 +269,9 @@ export default function Profile() {
             <Ionicons name="settings-outline" size={24} color={Colors.text.primary} />
           </TouchableOpacity>
         </View>
+
+        {/* Profile Setup Banner */}
+        <ProfileSetupBanner />
 
         {/* User Info Section */}
         <View style={styles.userSection}>

@@ -8,6 +8,7 @@ import 'react-native-reanimated';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { ThemeProvider } from '../theme';
 import { AppStateProvider } from '../context/AppState';
+import { AuthProvider } from '../context/AuthContext';
 import SplashScreen from '@/components/SplashScreen';
 
 export default function RootLayout() {
@@ -28,15 +29,18 @@ export default function RootLayout() {
   return (
     <NavThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <ThemeProvider>
-        <AppStateProvider>
-          <Stack>
-            <Stack.Screen name="index" options={{ headerShown: false }} />
-            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-            <Stack.Screen name="onboarding" options={{ headerShown: false }} />
-            <Stack.Screen name="+not-found" />
-          </Stack>
-          <StatusBar style="auto" />
-        </AppStateProvider>
+        <AuthProvider>
+          <AppStateProvider>
+            <Stack>
+              <Stack.Screen name="index" options={{ headerShown: false }} />
+              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+              <Stack.Screen name="onboarding" options={{ headerShown: false }} />
+              <Stack.Screen name="auth" options={{ headerShown: false }} />
+              <Stack.Screen name="+not-found" />
+            </Stack>
+            <StatusBar style="auto" />
+          </AppStateProvider>
+        </AuthProvider>
       </ThemeProvider>
     </NavThemeProvider>
   );

@@ -53,7 +53,12 @@ export default function OnboardingStart(){
 
   const handleSkip = () => {
     track('onboarding_skipped', {});
-    router.replace('/(tabs)');
+    router.replace('/auth/signin');
+  };
+
+  const handleSignIn = () => {
+    track('signin_from_onboarding', {});
+    router.push('/auth/signin');
   };
 
   return (
@@ -144,7 +149,12 @@ export default function OnboardingStart(){
             size="large"
           />
           <ModernButton 
-            title="Skip for now" 
+            title="I already have an account" 
+            onPress={handleSignIn}
+            variant="secondary"
+          />
+          <ModernButton 
+            title="Continue as Guest" 
             onPress={handleSkip}
             variant="ghost"
           />
