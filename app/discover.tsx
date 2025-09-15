@@ -88,6 +88,8 @@ const cuisineTypes = [
   { id: '6', name: 'Mediterranean', emoji: '🥙', color: '#F4E4FF' },
 ];
 
+import GlassmorphicBackButton from '@/components/GlassmorphicBackButton';
+
 export default function ExploreScreen() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
@@ -239,7 +241,8 @@ export default function ExploreScreen() {
       >
         {/* Search Header */}
         <View style={styles.searchHeader}>
-          <Text style={styles.headerTitle}>Discover</Text>
+          {/* Glass Back Button replaces text header */}
+          <GlassmorphicBackButton />
           <View style={styles.searchContainer}>
             <View style={[styles.searchBar, isSearchFocused && styles.searchBarFocused]}>
               <Ionicons name="search" size={20} color={Colors.gray[400]} />
@@ -370,6 +373,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   searchContainer: {
+    marginTop: 20,
     width: '100%',
   },
   searchBar: {

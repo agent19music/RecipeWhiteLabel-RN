@@ -208,11 +208,7 @@ export default function AICameraScreen() {
     <>
       <Stack.Screen 
         options={{ 
-          title: 'AI Camera',
-          headerShown: true,
-          headerStyle: { backgroundColor: Colors.black },
-          headerTintColor: Colors.white,
-          headerTitleStyle: { fontWeight: '600' },
+          headerShown: false,
         }} 
       />
       <View style={styles.container}>

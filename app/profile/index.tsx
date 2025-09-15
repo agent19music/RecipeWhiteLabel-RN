@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import GlassmorphicBackButton from '@/components/GlassmorphicBackButton';
 import { 
   View, 
   Text, 
@@ -262,12 +263,9 @@ export default function Profile() {
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
       >
-        {/* Header */}
+        {/* Header: replace with glass back button only */}
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>Profile</Text>
-          <TouchableOpacity style={styles.settingsButton}>
-            <Ionicons name="settings-outline" size={24} color={Colors.text.primary} />
-          </TouchableOpacity>
+          <GlassmorphicBackButton />
         </View>
 
         {/* Profile Setup Banner */}

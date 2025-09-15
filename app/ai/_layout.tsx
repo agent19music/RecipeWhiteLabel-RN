@@ -7,9 +7,9 @@ export default function AILayout() {
         headerShown: false,
       }}
     >
-      <Stack.Screen name="index" />
-      <Stack.Screen name="manual" />
-      <Stack.Screen name="camera" />
+      <Stack.Screen name="index" options={{ headerShown: false }} />
+      <Stack.Screen name="manual" options={{ headerShown: false }} />
+      <Stack.Screen name="camera" options={{ headerShown: false }} />
     </Stack>
   );
 }

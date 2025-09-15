@@ -9,6 +9,8 @@ import { recipes as seedRecipes } from '../../data/seed';
 import { useRouter } from 'expo-router';
 import { track } from '../../utils/analytics';
 
+import GlassmorphicBackButton from '@/components/GlassmorphicBackButton';
+
 export default function CameraScreen(){
   const { palette } = useTheme();
   const router = useRouter();
@@ -54,7 +56,10 @@ export default function CameraScreen(){
 
   return (
     <View style={{ flex: 1, backgroundColor: palette.bg, padding: theme.space.lg }}>
-      <Text accessibilityRole="header" style={{ fontSize: theme.font.h1, fontWeight: '800', color: palette.text }}>What’s in your fridge?</Text>
+      {/* Glass Back Button */}
+      <GlassmorphicBackButton />
+
+      <Text accessibilityRole="header" style={{ fontSize: theme.font.h1, fontWeight: '800', color: palette.text, marginTop: 10 }}>What's in your fridge?</Text>
       <View style={{ height: 260, marginTop: theme.space.lg, borderRadius: 16, overflow: 'hidden', borderWidth: 1, borderColor: palette.border, backgroundColor: palette.primaryMuted }}>
         {canUseCamera ? (
           <CameraView style={{ flex: 1 }} accessibilityLabel="Camera viewport" />

@@ -1,5 +1,9 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Session, User, AuthChangeEvent } from '@supabase/supabase-js';
+import { Alert, Platform } from 'react-native';
+import * as WebBrowser from 'expo-web-browser';
+import * as Linking from 'expo-linking';
+import { makeRedirectUri } from 'expo-auth-session';
 import { supabase } from '../lib/supabase';
 import { UserProfile, UserPreferences } from '../types/database';
 
@@ -15,6 +19,7 @@ interface AuthContextType {
   resetPassword: (email: string) => Promise<void>;
   updateProfile: (updates: Partial<UserProfile>) => Promise<void>;
   updatePreferences: (preferences: UserPreferences) => Promise<void>;
+  handleAuthCallback: (url: string) => Promise<void>;
   isOnboardingComplete: boolean;
   error: string | null;
   clearError: () => void;
@@ -131,19 +136,81 @@ export function AuthProvider({ children }: AuthProviderProps) {
       setError(null);
       setLoading(true);
 
+      // Complete auth session for web browser
+      WebBrowser.maybeCompleteAuthSession();
+      
+      // Create redirect URI
+      const redirectTo = makeRedirectUri({
+        scheme: 'roycorecipe',
+        path: 'auth',
+      });
+
+      console.log('Redirect URI:', redirectTo);
+
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: process.env.EXPO_PUBLIC_SUPABASE_REDIRECT_URL || 'royco://auth',
+          redirectTo,
+          skipBrowserRedirect: true, // Important for React Native
         },
       });
 
       if (error) throw error;
+
+      if (data?.url) {
+        // Open the OAuth URL in the browser
+        const result = await WebBrowser.openAuthSessionAsync(
+          data.url,
+          redirectTo
+        );
+
+        if (result.type === 'success') {
+          // Handle the redirect URL
+          const { url } = result;
+          await handleAuthCallback(url);
+        } else {
+          throw new Error('Authentication was cancelled or failed');
+        }
+      } else {
+        throw new Error('No authentication URL received');
+      }
     } catch (err: any) {
       setError(err.message || 'Failed to sign in with Google');
       throw err;
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Handle OAuth callback
+  const handleAuthCallback = async (url: string) => {
+    try {
+      // Parse the URL for auth tokens
+      const urlObj = new URL(url);
+      const accessToken = urlObj.searchParams.get('access_token');
+      const refreshToken = urlObj.searchParams.get('refresh_token');
+      const type = urlObj.searchParams.get('type');
+      
+      if (type === 'recovery') {
+        // Handle password recovery
+        return;
+      }
+
+      if (accessToken && refreshToken) {
+        // Set the session with the tokens
+        const { data, error } = await supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken,
+        });
+
+        if (error) throw error;
+        console.log('Session set successfully:', data.session?.user?.email);
+      } else {
+        throw new Error('No tokens found in callback URL');
+      }
+    } catch (err: any) {
+      setError(err.message || 'Failed to handle authentication callback');
+      throw err;
     }
   };
 
@@ -292,6 +359,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     resetPassword,
     updateProfile,
     updatePreferences,
+    handleAuthCallback,
     isOnboardingComplete,
     error,
     clearError,

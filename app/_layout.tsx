@@ -31,12 +31,12 @@ export default function RootLayout() {
       <ThemeProvider>
         <AuthProvider>
           <AppStateProvider>
-            <Stack>
+            <Stack screenOptions={{ headerShown: false }}>
               <Stack.Screen name="index" options={{ headerShown: false }} />
               <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
               <Stack.Screen name="onboarding" options={{ headerShown: false }} />
               <Stack.Screen name="auth" options={{ headerShown: false }} />
-              <Stack.Screen name="+not-found" />
+              <Stack.Screen name="+not-found" options={{ headerShown: false }} />
             </Stack>
             <StatusBar style="auto" />
           </AppStateProvider>

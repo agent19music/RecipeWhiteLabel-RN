@@ -10,6 +10,8 @@ import { generateRecipeFromIngredientsList, saveGeneratedRecipe } from '../../ut
 import { CookingSequence } from '@/components/CookingAnimations';
 import { Colors } from '@/constants/Colors';
 
+import GlassmorphicBackButton from '@/components/GlassmorphicBackButton';
+
 export default function ManualInput(){
   const { palette } = useTheme();
   const [q, setQ] = useState('');
@@ -101,9 +103,12 @@ export default function ManualInput(){
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: palette.bg }}>
+    <View style={{ flex: 1, backgroundColor: palette.bg, padding: theme.space.lg }}>
+      {/* Glass Back Button */}
+      <GlassmorphicBackButton />
+
       <ScrollView style={{ flex: 1, padding: theme.space.lg }}>
-        <Text accessibilityRole="header" style={{ fontSize: theme.font.h1, fontWeight: '800', color: palette.text, marginBottom: 8 }}>Add ingredients</Text>
+        <Text accessibilityRole="header" style={{ fontSize: theme.font.h1, fontWeight: '800', color: palette.text, marginBottom: 8, marginTop: 10 }}>Add ingredients</Text>
         <Text style={{ fontSize: 14, color: palette.subtext, marginBottom: theme.space.lg }}>Select ingredients you have or type your own</Text>
         
         <TextInput
