@@ -12,6 +12,7 @@ interface AuthContextType {
   signInWithEmail: (email: string, password: string) => Promise<void>;
   signUpWithEmail: (email: string, password: string, fullName: string) => Promise<void>;
   signOut: () => Promise<void>;
+  resetPassword: (email: string) => Promise<void>;
   updateProfile: (updates: Partial<UserProfile>) => Promise<void>;
   updatePreferences: (preferences: UserPreferences) => Promise<void>;
   isOnboardingComplete: boolean;
@@ -193,6 +194,28 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   };
 
+  // Reset Password
+  const resetPassword = async (email: string) => {
+    try {
+      setError(null);
+      setLoading(true);
+
+      const { error } = await supabase.auth.resetPasswordForEmail(
+        email.toLowerCase().trim(),
+        {
+          redirectTo: process.env.EXPO_PUBLIC_SUPABASE_REDIRECT_URL || 'royco://auth/reset-password',
+        }
+      );
+
+      if (error) throw error;
+    } catch (err: any) {
+      setError(err.message || 'Failed to send reset email');
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Sign Out
   const signOut = async () => {
     try {
@@ -266,6 +289,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     signInWithEmail,
     signUpWithEmail,
     signOut,
+    resetPassword,
     updateProfile,
     updatePreferences,
     isOnboardingComplete,

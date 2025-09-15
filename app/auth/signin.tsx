@@ -21,13 +21,14 @@ import { BlurView } from 'expo-blur';
 import { theme, useTheme } from '../../theme';
 import { useAuth } from '../../context/AuthContext';
 import * as Haptics from 'expo-haptics';
+import { Modal } from 'react-native';
 
 const { width, height } = Dimensions.get('window');
 
 export default function SignInScreen() {
   const { palette } = useTheme();
   const router = useRouter();
-  const { signInWithGoogle, signInWithEmail, signUpWithEmail, loading, error, clearError } = useAuth();
+  const { signInWithGoogle, signInWithEmail, signUpWithEmail, resetPassword, loading, error, clearError } = useAuth();
 
   // Form state
   const [isSignUp, setIsSignUp] = useState(false);
@@ -37,6 +38,10 @@ export default function SignInScreen() {
   const [fullName, setFullName] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  
+  // Forgot password modal
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [resetEmail, setResetEmail] = useState('');
   
   // Animation refs
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -141,6 +146,27 @@ export default function SignInScreen() {
   const handleSkip = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     router.replace('/(tabs)');
+  };
+
+  const handleForgotPassword = async () => {
+    if (!resetEmail.trim()) {
+      Alert.alert('Error', 'Please enter your email address');
+      return;
+    }
+
+    try {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      await resetPassword(resetEmail);
+      setShowForgotPassword(false);
+      setResetEmail('');
+      Alert.alert(
+        'Reset Email Sent!',
+        'Please check your email for password reset instructions.',
+        [{ text: 'OK' }]
+      );
+    } catch (err) {
+      // Error handled by context
+    }
   };
 
   return (
@@ -320,7 +346,10 @@ export default function SignInScreen() {
 
               {/* Forgot Password (Sign In Only) */}
               {!isSignUp && (
-                <TouchableOpacity style={styles.forgotPassword}>
+                <TouchableOpacity 
+                  style={styles.forgotPassword}
+                  onPress={() => setShowForgotPassword(true)}
+                >
                   <Text style={[styles.forgotPasswordText, { color: palette.primary }]}>
                     Forgot Password?
                   </Text>
@@ -372,6 +401,74 @@ export default function SignInScreen() {
           </Animated.View>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      {/* Forgot Password Modal */}
+      <Modal
+        visible={showForgotPassword}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowForgotPassword(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <BlurView intensity={20} style={StyleSheet.absoluteFillObject} />
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            style={styles.modalKeyboardView}
+          >
+            <View style={[styles.modalContainer, { backgroundColor: palette.cardBg }]}>
+              <Text style={[styles.modalTitle, { color: palette.text }]}>
+                Reset Password
+              </Text>
+              <Text style={[styles.modalSubtitle, { color: palette.subtext }]}>
+                Enter your email address and we'll send you instructions to reset your password.
+              </Text>
+              
+              <View style={[styles.inputWrapper, { backgroundColor: palette.bg, borderColor: palette.border }]}>
+                <Ionicons name="mail-outline" size={20} color={palette.subtext} />
+                <TextInput
+                  style={[styles.input, { color: palette.text }]}
+                  placeholder="Email Address"
+                  placeholderTextColor={palette.subtext}
+                  value={resetEmail}
+                  onChangeText={setResetEmail}
+                  autoComplete="email"
+                  textContentType="emailAddress"
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                />
+              </View>
+
+              <View style={styles.modalActions}>
+                <TouchableOpacity
+                  style={[styles.modalButton, styles.cancelButton, { borderColor: palette.border }]}
+                  onPress={() => {
+                    setShowForgotPassword(false);
+                    setResetEmail('');
+                  }}
+                >
+                  <Text style={[styles.cancelButtonText, { color: palette.subtext }]}>
+                    Cancel
+                  </Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity
+                  style={[styles.modalButton, styles.resetButton, { backgroundColor: palette.primary }]}
+                  onPress={handleForgotPassword}
+                  disabled={loading}
+                >
+                  {loading ? (
+                    <ActivityIndicator size="small" color="#FFFFFF" />
+                  ) : (
+                    <Text style={styles.resetButtonText}>
+                      Send Reset Email
+                    </Text>
+                  )}
+                </TouchableOpacity>
+              </View>
+            </View>
+          </KeyboardAvoidingView>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -528,5 +625,67 @@ const styles = StyleSheet.create({
   skipButtonText: {
     fontSize: 14,
     fontWeight: '500',
+  },
+  // Modal styles
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+  },
+  modalKeyboardView: {
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalContainer: {
+    width: '85%',
+    maxWidth: 400,
+    borderRadius: 24,
+    padding: theme.space.xl,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.1,
+    shadowRadius: 24,
+    elevation: 8,
+  },
+  modalTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    marginBottom: theme.space.sm,
+    textAlign: 'center',
+  },
+  modalSubtitle: {
+    fontSize: 16,
+    lineHeight: 22,
+    marginBottom: theme.space.xl,
+    textAlign: 'center',
+    opacity: 0.8,
+  },
+  modalActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: theme.space.xl,
+    gap: theme.space.md,
+  },
+  modalButton: {
+    flex: 1,
+    height: 48,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cancelButton: {
+    borderWidth: 1,
+  },
+  resetButton: {},
+  cancelButtonText: {
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  resetButtonText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '600',
   },
 });
