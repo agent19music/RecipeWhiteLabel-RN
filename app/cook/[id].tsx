@@ -6,6 +6,8 @@ import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
+import Dialog from '@/components/Dialog';
+import { useDialog } from '@/hooks/useDialog';
 import {
     Alert,
     Animated,
@@ -32,6 +34,7 @@ export default function CookingScreen() {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
   const timerInterval = useRef<NodeJS.Timeout | null>(null);
+  const { dialog, showWarningDialog, showConfirmDialog, showDialog, hideDialog } = useDialog();
 
   useEffect(() => {
     const loadRecipe = async () => {
@@ -75,7 +78,12 @@ export default function CookingScreen() {
           if (prev === null || prev <= 1) {
             setIsTimerActive(false);
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-            Alert.alert('Timer Complete!', 'Time for the next step.');
+            showDialog({
+              title: 'Timer Complete!',
+              message: 'Time for the next step.',
+              icon: { name: 'timer-check', backgroundColor: Colors.success },
+              actions: [{ label: 'OK', variant: 'primary', onPress: hideDialog }]
+            });
             return 0;
           }
           return prev - 1;
@@ -175,20 +183,23 @@ export default function CookingScreen() {
   };
 
   const finishCooking = () => {
-    Alert.alert(
-      'Cooking Complete! 🎉',
-      'Great job! You\'ve successfully prepared ' + recipe.title,
-      [
+    showDialog({
+      title: 'Cooking Complete! 🎉',
+      message: 'Great job! You\'ve successfully prepared ' + recipe.title,
+      icon: { name: 'chef-hat', backgroundColor: Colors.success },
+      actions: [
         {
-          text: 'View Recipe',
-          onPress: () => router.replace(`/recipe/${recipe.id}`),
+          label: 'View Recipe',
+          variant: 'primary',
+          onPress: () => router.replace(`/recipe/${recipe.id}`)
         },
         {
-          text: 'Back to Home',
-          onPress: () => router.replace('/(tabs)/'),
-        },
+          label: 'Back to Home',
+          variant: 'secondary',
+          onPress: () => router.replace('/(tabs)/')
+        }
       ]
-    );
+    });
   };
 
   const currentStepData = steps[currentStep];

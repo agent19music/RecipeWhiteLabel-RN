@@ -9,6 +9,8 @@ import { CameraType, CameraView, useCameraPermissions } from 'expo-camera';
 import * as Haptics from 'expo-haptics';
 import { Stack, useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
+import { useDialog } from '@/hooks/useDialog';
+import Dialog from '@/components/Dialog';
 import {
     ActivityIndicator,
     Alert,
@@ -32,6 +34,7 @@ interface DetectedIngredient {
 }
 
 export default function AICameraScreen() {
+  const { dialog, showWarningDialog, showErrorDialog,hideDialog } = useDialog();
   const router = useRouter();
   const [permission, requestPermission] = useCameraPermissions();
   const [facing, setFacing] = useState<CameraType>('back');
@@ -130,12 +133,12 @@ export default function AICameraScreen() {
 
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         } else {
-          Alert.alert('No Ingredients Detected', 'Try pointing the camera at different ingredients or adjust lighting.');
+          showWarningDialog('No Ingredients Detected', 'Try pointing the camera at different ingredients or adjust lighting.');
         }
       }
     } catch (error) {
       console.error('Detection error:', error);
-      Alert.alert('Detection Failed', 'Unable to analyze image. Please try again.');
+      showErrorDialog('Detection Failed', 'Unable to analyze image. Please try again.');
     } finally {
       setIsAnalyzing(false);
     }
@@ -175,7 +178,7 @@ export default function AICameraScreen() {
       .map(ing => ing.name);
 
     if (selectedIngredients.length === 0) {
-      Alert.alert('No Ingredients Selected', 'Please select at least one ingredient to generate a recipe.');
+      showWarningDialog('No Ingredients Selected', 'Please select at least one ingredient to generate a recipe.');
       return;
     }
 
@@ -195,7 +198,7 @@ export default function AICameraScreen() {
       }
     } catch (error) {
       console.error('Recipe generation error:', error);
-      Alert.alert('Generation Failed', 'Unable to generate recipe. Please try again.');
+      showErrorDialog('Generation Failed', 'Unable to generate recipe. Please try again.');
     } finally {
       setIsGeneratingRecipe(false);
       setShowCookingAnimation(false);
@@ -369,6 +372,16 @@ export default function AICameraScreen() {
           </View>
         )}
       </View>
+
+      {/* Custom Dialog */}
+      <Dialog
+        visible={dialog.visible}
+        onClose={hideDialog}
+        title={dialog.title}
+        message={dialog.message}
+        icon={dialog.icon}
+        actions={dialog.actions}
+      />
     </>
   );
 }

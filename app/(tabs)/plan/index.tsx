@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import Dialog from '@/components/Dialog';
+import { useDialog } from '@/hooks/useDialog';
 import {
   View,
   Text,
@@ -73,6 +75,7 @@ export default function Planner() {
   });
   
   const [weekPlans, setWeekPlans] = useState<DayPlan[]>([]);
+  const { dialog, showErrorDialog, showDialog, hideDialog } = useDialog();
   const plan = demoPlan;
 
   // Initialize week plans
@@ -500,6 +503,15 @@ export default function Planner() {
 
         <View style={styles.bottomSpacing} />
       </ScrollView>
+      
+      <Dialog
+        visible={dialog.visible}
+        onClose={hideDialog}
+        title={dialog.title}
+        message={dialog.message}
+        icon={dialog.icon}
+        actions={dialog.actions}
+      />
     </SafeAreaView>
   );
 }

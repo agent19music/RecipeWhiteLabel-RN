@@ -1,14 +1,15 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, ScrollView, StyleSheet, ActivityIndicator, Alert } from 'react-native';
-import { theme, useTheme } from '../../theme';
-import Chip from '../../components/Chip';
-import Button from '../../components/Button';
-import { popularIngredients, recipes as seedRecipes } from '../../data/seed';
-import { useRouter } from 'expo-router';
-import { track } from '../../utils/analytics';
-import { generateRecipeFromIngredientsList, saveGeneratedRecipe } from '../../utils/ai';
 import { CookingSequence } from '@/components/CookingAnimations';
+import Dialog from '@/components/Dialog';
 import { Colors } from '@/constants/Colors';
+import { useRouter } from 'expo-router';
+import React, { useState } from 'react';
+import { ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import Button from '../../components/Button';
+import Chip from '../../components/Chip';
+import { popularIngredients, recipes as seedRecipes } from '../../data/seed';
+import { theme, useTheme } from '../../theme';
+import { generateRecipeFromIngredientsList, saveGeneratedRecipe } from '../../utils/ai';
+import { track } from '../../utils/analytics';
 
 import GlassmorphicBackButton from '@/components/GlassmorphicBackButton';
 
@@ -16,8 +17,15 @@ export default function ManualInput(){
   const { palette } = useTheme();
   const [q, setQ] = useState('');
   const [sel, setSel] = useState<string[]>([]);
-  const [isGenerating, setIsGenerating] = useState(false);
+const [isGenerating, setIsGenerating] = useState(false);
   const [showAnimation, setShowAnimation] = useState(false);
+  const [dialog, setDialog] = useState<{
+    visible: boolean;
+    title: string;
+    message: string;
+    icon?: { name: string; color?: string; backgroundColor?: string };
+    actions?: Array<{ label: string; variant?: 'primary' | 'secondary' | 'danger'; onPress: () => void }>;
+  }>({ visible: false, title: '', message: '' });
   const r = useRouter();
 
   const add = (s: string) => setSel(arr => Array.from(new Set([...arr, s])));
@@ -25,7 +33,13 @@ export default function ManualInput(){
 
   const generateWithAI = async () => {
     if (sel.length === 0) {
-      Alert.alert('No Ingredients', 'Please add at least one ingredient to generate a recipe.');
+      setDialog({
+        visible: true,
+        title: 'No Ingredients',
+        message: 'Please add at least one ingredient to generate a recipe.',
+        icon: { name: 'food-off', backgroundColor: Colors.warning },
+        actions: [{ label: 'OK', variant: 'primary', onPress: () => setDialog(d => ({ ...d, visible: false })) }]
+      });
       return;
     }
 
@@ -43,30 +57,50 @@ export default function ManualInput(){
         track('ai_recipe_generated', { recipeId: result.recipe.id, title: result.recipe.title });
         
         // Show success and offer navigation
-        Alert.alert(
-          'Recipe Generated!',
-          `Successfully created: ${result.recipe.title}`,
-          [
-            { text: 'View Recipe', onPress: () => {
-              try {
-                r.push(`/recipe/${result.recipe.id}`);
-              } catch (navError) {
-                console.error('Navigation error:', navError);
-                r.push('/(tabs)/');
+        setDialog({
+          visible: true,
+          title: 'Recipe Generated!',
+          message: `Successfully created: ${result.recipe.title}`,
+          icon: { name: 'chef-hat', backgroundColor: Colors.success },
+          actions: [
+            { 
+              label: 'View Recipe',
+              variant: 'primary',
+              onPress: () => {
+                setDialog(d => ({ ...d, visible: false }));
+                try {
+                  r.push(`/recipe/${result.recipe.id}`);
+                } catch (navError) {
+                  console.error('Navigation error:', navError);
+                  r.push('/discover');
+                }
               }
-            }},
-            { text: 'Stay Here', style: 'cancel' }
+            },
+            { 
+              label: 'Stay Here',
+              variant: 'secondary',
+              onPress: () => setDialog(d => ({ ...d, visible: false }))
+            }
           ]
-        );
+        });
       } else {
-        Alert.alert('Generation Failed', 'Could not generate a recipe. Please try different ingredients.');
+        setDialog({
+          visible: true,
+          title: 'Generation Failed',
+          message: 'Could not generate a recipe. Please try different ingredients.',
+          icon: { name: 'alert-circle', backgroundColor: Colors.error },
+          actions: [{ label: 'OK', variant: 'primary', onPress: () => setDialog(d => ({ ...d, visible: false })) }]
+        });
       }
     } catch (error) {
       console.error('Recipe generation error:', error);
-      Alert.alert(
-        'Generation Error', 
-        'Unable to generate recipe. Please check your internet connection and try again.'
-      );
+      setDialog({
+        visible: true,
+        title: 'Generation Error',
+        message: 'Unable to generate recipe. Please check your internet connection and try again.',
+        icon: { name: 'wifi-off', backgroundColor: Colors.error },
+        actions: [{ label: 'OK', variant: 'primary', onPress: () => setDialog(d => ({ ...d, visible: false })) }]
+      });
     } finally {
       setIsGenerating(false);
       setShowAnimation(false);
@@ -85,24 +119,49 @@ export default function ManualInput(){
       track('ingredient_added_manual', { count: sel.length });
       
       if (matchingRecipes.length > 0) {
-        Alert.alert(
-          'Recipes Found!', 
-          `Found ${matchingRecipes.length} recipes matching your ingredients. Navigate to the Discover tab to see them.`,
-          [
-            { text: 'Go to Discover', onPress: () => r.push('/(tabs)/') },
-            { text: 'Stay Here', style: 'cancel' }
+        setDialog({
+          visible: true,
+          title: 'Recipes Found!',
+          message: `Found ${matchingRecipes.length} recipes matching your ingredients. Navigate to the Discover tab to see them.`,
+          icon: { name: 'bookmark-check', backgroundColor: Colors.success },
+          actions: [
+            { 
+              label: 'Go to Discover',
+              variant: 'primary',
+              onPress: () => {
+                setDialog(d => ({ ...d, visible: false }));
+                r.push('/discover');
+              }
+            },
+            { 
+              label: 'Stay Here',
+              variant: 'secondary',
+              onPress: () => setDialog(d => ({ ...d, visible: false }))
+            }
           ]
-        );
+        });
       } else {
-        Alert.alert('No Recipes Found', 'Try adding more ingredients or generate an AI recipe.');
+        setDialog({
+          visible: true,
+          title: 'No Recipes Found',
+          message: 'Try adding more ingredients or generate an AI recipe.',
+          icon: { name: 'file-search', backgroundColor: Colors.warning },
+          actions: [{ label: 'OK', variant: 'primary', onPress: () => setDialog(d => ({ ...d, visible: false })) }]
+        });
       }
     } catch (error) {
       console.error('Error finding recipes:', error);
-      Alert.alert('Error', 'Could not find recipes. Please try again.');
+      setDialog({
+        visible: true,
+        title: 'Error',
+        message: 'Could not find recipes. Please try again.',
+        icon: { name: 'alert', backgroundColor: Colors.error },
+        actions: [{ label: 'OK', variant: 'primary', onPress: () => setDialog(d => ({ ...d, visible: false })) }]
+      });
     }
   };
 
-  return (
+  return (<>
     <View style={{ flex: 1, backgroundColor: palette.bg, padding: theme.space.lg }}>
       {/* Glass Back Button */}
       <GlassmorphicBackButton />
@@ -230,7 +289,17 @@ export default function ManualInput(){
           </View>
         </View>
       )}
-    </View>
-  );
+        </View>
+      
+      <Dialog 
+        visible={dialog.visible}
+        onClose={() => setDialog(d => ({ ...d, visible: false }))}
+        title={dialog.title}
+        message={dialog.message}
+        icon={dialog.icon}
+        actions={dialog.actions}
+      />
+   
+  </>);
 }
 

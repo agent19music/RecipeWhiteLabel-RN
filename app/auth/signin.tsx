@@ -22,13 +22,15 @@ import { theme, useTheme } from '../../theme';
 import { useAuth } from '../../context/AuthContext';
 import * as Haptics from 'expo-haptics';
 import { Modal } from 'react-native';
+import Dialog from '@/components/Dialog';
+import { useDialog } from '@/hooks/useDialog';
 
 const { width, height } = Dimensions.get('window');
 
 export default function SignInScreen() {
   const { palette } = useTheme();
   const router = useRouter();
-  const { signInWithGoogle, signInWithEmail, signUpWithEmail, resetPassword, loading, error, clearError } = useAuth();
+  const { signInWithGoogle, signInWithEmail, signUpWithEmail, resetPassword, loading, error, } = useAuth();
 
   // Form state
   const [isSignUp, setIsSignUp] = useState(false);
@@ -42,6 +44,7 @@ export default function SignInScreen() {
   // Forgot password modal
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [resetEmail, setResetEmail] = useState('');
+  const { dialog, showErrorDialog, showSuccessDialog, hideDialog } = useDialog();
   
   // Animation refs
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -81,7 +84,7 @@ export default function SignInScreen() {
   useEffect(() => {
     if (error) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      Alert.alert('Error', error, [{ text: 'OK', onPress: clearError }]);
+      showErrorDialog('Error', error);
     }
   }, [error]);
 
@@ -96,21 +99,21 @@ export default function SignInScreen() {
 
   const handleEmailAuth = async () => {
     if (!email.trim() || !password.trim()) {
-      Alert.alert('Error', 'Please fill in all required fields');
+      showErrorDialog('Error', 'Please fill in all required fields');
       return;
     }
 
     if (isSignUp) {
       if (!fullName.trim()) {
-        Alert.alert('Error', 'Please enter your full name');
+        showErrorDialog('Error', 'Please enter your full name');
         return;
       }
       if (password !== confirmPassword) {
-        Alert.alert('Error', 'Passwords do not match');
+        showErrorDialog('Error', 'Passwords do not match');
         return;
       }
       if (password.length < 6) {
-        Alert.alert('Error', 'Password must be at least 6 characters');
+        showErrorDialog('Error', 'Password must be at least 6 characters');
         return;
       }
     }
@@ -120,10 +123,9 @@ export default function SignInScreen() {
       
       if (isSignUp) {
         await signUpWithEmail(email, password, fullName);
-        Alert.alert(
-          'Success!', 
-          'Please check your email for a confirmation link.',
-          [{ text: 'OK' }]
+        showSuccessDialog(
+          'Success!',
+          'Please check your email for a confirmation link.'
         );
       } else {
         await signInWithEmail(email, password);
@@ -140,7 +142,7 @@ export default function SignInScreen() {
     setPassword('');
     setConfirmPassword('');
     setFullName('');
-    clearError();
+    hideDialog();
   };
 
   const handleSkip = () => {
@@ -150,7 +152,7 @@ export default function SignInScreen() {
 
   const handleForgotPassword = async () => {
     if (!resetEmail.trim()) {
-      Alert.alert('Error', 'Please enter your email address');
+      showErrorDialog('Error', 'Please enter your email address');
       return;
     }
 
@@ -159,10 +161,9 @@ export default function SignInScreen() {
       await resetPassword(resetEmail);
       setShowForgotPassword(false);
       setResetEmail('');
-      Alert.alert(
+      showSuccessDialog(
         'Reset Email Sent!',
-        'Please check your email for password reset instructions.',
-        [{ text: 'OK' }]
+        'Please check your email for password reset instructions.'
       );
     } catch (err) {
       // Error handled by context
@@ -469,7 +470,15 @@ export default function SignInScreen() {
           </KeyboardAvoidingView>
         </View>
       </Modal>
-    </SafeAreaView>
+      <Dialog
+        visible={dialog.visible}
+        onClose={hideDialog}  
+        title={dialog.title}
+        message={dialog.message}
+        icon={dialog.icon}
+        actions={dialog.actions}
+      />
+      </SafeAreaView>
   );
 }
 

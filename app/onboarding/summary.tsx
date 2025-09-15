@@ -10,11 +10,13 @@ import { useAuth } from '../../context/AuthContext';
 import { theme, useTheme } from '../../theme';
 import { track } from '../../utils/analytics';
 import { UserPreferences } from '../../types/database';
-import { Alert } from 'react-native';
+import Dialog from '@/components/Dialog';
+import { useDialog } from '@/hooks/useDialog';
 
 export default function SummaryScreen(){
   const { palette } = useTheme();
   const router = useRouter();
+  const { dialog, showDialog } = useDialog();
   const { prefs, setOnboarded } = useAppState();
   const { user, updatePreferences } = useAuth();
   
@@ -71,17 +73,26 @@ export default function SummaryScreen(){
       router.replace('/(tabs)');
     } catch (error) {
       console.error('Failed to save preferences:', error);
-      Alert.alert(
-        'Error',
-        'Failed to save your preferences. Please try again.',
-        [
-          { text: 'Try Again', onPress: finish },
-          { text: 'Skip', onPress: () => {
-            setOnboarded(true);
-            router.replace('/(tabs)');
-          }}
+      showDialog({
+        title: 'Error',
+        message: 'Failed to save your preferences. Please try again.',
+        icon: { name: 'alert-circle', backgroundColor: '#EF4444' },
+        actions: [
+          { 
+            label: 'Try Again',
+            variant: 'primary',
+            onPress: finish
+          },
+          { 
+            label: 'Skip',
+            variant: 'secondary',
+            onPress: () => {
+              setOnboarded(true);
+              router.replace('/(tabs)');
+            }
+          }
         ]
-      );
+      });
     }
   };
 
@@ -196,6 +207,14 @@ export default function SummaryScreen(){
           />
         </Animated.View>
       </View>
+      <Dialog
+        visible={dialog.visible}
+        onClose={() => setDialog(d => ({ ...d, visible: false }))}
+        title={dialog.title}
+        message={dialog.message}
+        icon={dialog.icon}
+        actions={dialog.actions}
+      />
     </SafeAreaView>
   );
 }

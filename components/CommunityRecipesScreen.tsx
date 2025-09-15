@@ -1,25 +1,26 @@
 import ChallengeCard from '@/components/ChallengeCard';
 import CommunityRecipeCard from '@/components/CommunityRecipeCard';
+import Dialog from '@/components/Dialog';
 import SubmissionCard from '@/components/SubmissionCard';
 import { Colors } from '@/constants/Colors';
 import { Challenge, ChallengeSubmission, getActiveChallenge, getTrendingSubmissions } from '@/data/challenges';
 import { getCommunityRecipes, getViralRecipes } from '@/data/community-recipes';
 import { Recipe } from '@/data/types';
+import { useDialog } from '@/hooks/useDialog';
 import { track } from '@/utils/analytics';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
 import React, { useRef, useState } from 'react';
 import {
-    Alert,
-    Animated,
-    Dimensions,
-    FlatList,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  Animated,
+  Dimensions,
+  FlatList,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -36,7 +37,7 @@ export default function CommunityRecipesScreen() {
   const [activeFilter, setActiveFilter] = useState<FilterType>('all');
   const flatListRef = useRef<FlatList>(null);
   const submissionsFlatListRef = useRef<FlatList>(null);
-  
+  const { dialog, showDialog, showWarningDialog, showErrorDialog, showSuccessDialog, showConfirmDialog, hideDialog } = useDialog();
   // Challenge data
   const activeChallenge = getActiveChallenge();
   const trendingSubmissions = getTrendingSubmissions();
@@ -96,42 +97,39 @@ export default function CommunityRecipesScreen() {
   };
 
   const handleChallengePress = (challenge: Challenge) => {
-    Alert.alert(
-      challenge.name,
-      challenge.description,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'View Details', onPress: () => track('challenge_details_viewed', { challengeId: challenge.id }) }
-      ]
-    );
+    showDialog({
+      title: challenge.name,
+      message: challenge.description,
+      icon: { name: 'trophy' },
+      actions: [
+        { label: 'Cancel', variant: 'secondary', onPress: hideDialog },
+        { label: 'View Details', variant: 'primary', onPress: () => track('challenge_details_viewed', { challengeId: challenge.id }) },
+      ],
+    });
   };
 
   const handleJoinChallenge = (challenge: Challenge) => {
-    Alert.alert(
+    showConfirmDialog(
       'Join Challenge',
       `Are you ready to participate in ${challenge.name}? Show off your cooking skills and win amazing prizes!`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Join Now',
-          onPress: () => {
-            track('challenge_joined', { challengeId: challenge.id });
-            Alert.alert('Success!', 'You have joined the challenge! Start creating your submission.');
-          }
-        }
-      ]
+      () => {
+        track('challenge_joined', { challengeId: challenge.id });
+        showSuccessDialog('Success!', 'You have joined the challenge! Start creating your submission.');
+      },
+      'Join Now'
     );
   };
 
   const handleSubmissionPress = (submission: ChallengeSubmission) => {
-    Alert.alert(
-      submission.title,
-      `By ${submission.author}\n\n${submission.description || 'View full recipe and cooking details.'}`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'View Recipe', onPress: () => track('submission_viewed', { submissionId: submission.id }) }
-      ]
-    );
+    showDialog({
+      title: submission.title,
+      message: `By ${submission.author}\n\n${submission.description || 'View full recipe and cooking details.'}`,
+      icon: { name: 'fire' },
+      actions: [
+        { label: 'Cancel', variant: 'secondary', onPress: hideDialog },
+        { label: 'View Recipe', variant: 'primary', onPress: () => track('submission_viewed', { submissionId: submission.id }) },
+      ],
+    });
   };
 
   const handleSubmissionLike = (submission: ChallengeSubmission) => {
@@ -139,7 +137,7 @@ export default function CommunityRecipesScreen() {
   };
 
   const handleSubmissionComment = (submission: ChallengeSubmission) => {
-    Alert.alert('Comments', 'View and add comments for this submission');
+    showWarningDialog('Comments', 'View and add comments for this submission');
     track('submission_comment_viewed', { submissionId: submission.id });
   };
 
@@ -263,14 +261,15 @@ export default function CommunityRecipesScreen() {
       <TouchableOpacity
         style={styles.submitPrompt}
         onPress={() => {
-          Alert.alert(
-            'Submit Your Recipe',
-            'Ready to join the challenge? Submit your amazing creation!',
-            [
-              { text: 'Cancel', style: 'cancel' },
-              { text: 'Start Submission', onPress: () => track('submission_started') }
-            ]
-          );
+          showDialog({
+            title: 'Submit Your Recipe',
+            message: 'Ready to join the challenge? Submit your amazing creation!',
+            icon: { name: 'camera' },
+            actions: [
+              { label: 'Cancel', variant: 'secondary', onPress: hideDialog },
+              { label: 'Start Submission', variant: 'primary', onPress: () => track('submission_started') },
+            ],
+          });
         }}
       >
         <View style={styles.submitPromptContent}>
@@ -388,7 +387,7 @@ export default function CommunityRecipesScreen() {
         {/* Fixed Header Section */}
         <View style={styles.fixedHeader}>
           {renderHeader()}
-          {renderTabs()}
+     
         </View>
         
         {/* Tab Content */}
@@ -406,18 +405,27 @@ export default function CommunityRecipesScreen() {
             ? 'Ready to submit your challenge entry?' 
             : 'Share your amazing recipe with the community!';
           
-          Alert.alert(
-            action,
+          showDialog({
+            title: action,
             message,
-            [
-              { text: 'Cancel', style: 'cancel' },
-              { text: action, onPress: () => track(`${activeTab}_submission_started`) }
-            ]
-          );
+            icon: { name: activeTab === 'challenges' ? 'trophy' : 'share-variant' },
+            actions: [
+              { label: 'Cancel', variant: 'secondary', onPress: hideDialog },
+              { label: action, variant: 'primary', onPress: () => track(`${activeTab}_submission_started`) },
+            ],
+          });
         }}
       >
         <Ionicons name="add" size={24} color={Colors.white} />
       </TouchableOpacity>
+      <Dialog
+        visible={dialog.visible}
+        onClose={hideDialog}
+        title={dialog.title}
+        message={dialog.message}
+        icon={dialog.icon}
+        actions={dialog.actions}
+      />
     </SafeAreaView>
   );
 }

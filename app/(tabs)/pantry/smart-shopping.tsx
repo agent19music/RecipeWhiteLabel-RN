@@ -19,6 +19,8 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { track } from '../../../utils/analytics';
+import Dialog from '@/components/Dialog';
+import { useDialog } from '@/hooks/useDialog';
 
 // Simple debounce function
 function debounce<T extends (...args: any[]) => any>(
@@ -174,6 +176,7 @@ export default function SmartShoppingPantry() {
   const [selectedStore, setSelectedStore] = useState<'all' | 'carrefour' | 'jumia'>('all');
   const [isSearching, setIsSearching] = useState(false);
   const [suggestions, setSuggestions] = useState<string[]>([]);
+  const { dialog, showErrorDialog, showWarningDialog, showSuccessDialog, showDialog, hideDialog } = useDialog();
 
   // Smart search function
   const searchProducts = useCallback((query: string): Product[] => {
@@ -223,7 +226,7 @@ export default function SmartShoppingPantry() {
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
           track('smart_search_success', { query, resultCount: products.length });
         } else {
-          Alert.alert('No products found', `Try searching for: milk, bread, eggs, rice, chicken, etc.`);
+          showWarningDialog('No Products Found', 'Try searching for: milk, bread, eggs, rice, chicken, etc.');
         }
         setIsSearching(false);
       }
@@ -286,7 +289,7 @@ export default function SmartShoppingPantry() {
     );
     
     if (items.length === 0) {
-      Alert.alert('No items', `No items selected from ${STORES[store].name}`);
+      showWarningDialog('No Items', `No items selected from ${STORES[store].name}`);
       return;
     }
 
@@ -541,6 +544,14 @@ export default function SmartShoppingPantry() {
           )}
         </ScrollView>
       </KeyboardAvoidingView>
+      <Dialog
+        visible={dialog.visible}
+        onClose={hideDialog}
+        title={dialog.title}
+        message={dialog.message}
+        icon={dialog.icon}
+        actions={dialog.actions}
+      />
     </SafeAreaView>
   );
 }
