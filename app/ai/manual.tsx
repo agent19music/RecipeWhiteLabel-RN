@@ -1,4 +1,4 @@
-import { CookingSequence } from '@/components/CookingAnimations';
+import LoadingSpinner from '@/components/LoadingSpinner';
 import Dialog from '@/components/Dialog';
 import { Colors } from '@/constants/Colors';
 import { useRouter } from 'expo-router';
@@ -8,7 +8,7 @@ import Button from '../../components/Button';
 import Chip from '../../components/Chip';
 import { popularIngredients, recipes as seedRecipes } from '../../data/seed';
 import { theme, useTheme } from '../../theme';
-import { generateRecipeFromIngredientsList, saveGeneratedRecipe } from '../../utils/ai';
+import { generateAIRecipe } from '../../utils/ai-enhanced';
 import { track } from '../../utils/analytics';
 
 import GlassmorphicBackButton from '@/components/GlassmorphicBackButton';
@@ -18,7 +18,7 @@ export default function ManualInput(){
   const [q, setQ] = useState('');
   const [sel, setSel] = useState<string[]>([]);
 const [isGenerating, setIsGenerating] = useState(false);
-  const [showAnimation, setShowAnimation] = useState(false);
+  const [showLoading, setShowLoading] = useState(false);
   const [dialog, setDialog] = useState<{
     visible: boolean;
     title: string;
@@ -44,16 +44,18 @@ const [isGenerating, setIsGenerating] = useState(false);
     }
 
     setIsGenerating(true);
-    setShowAnimation(true);
+    setShowLoading(true);
     track('ai_recipe_generation_started', { count: sel.length, ingredients: sel });
 
     try {
-      // Generate recipe using AI
-      const result = await generateRecipeFromIngredientsList(sel);
+      // Generate recipe using enhanced AI with Gemini
+      const result = await generateAIRecipe(sel, {
+        cuisine: 'Kenyan',
+        servings: 4,
+        difficulty: 'medium',
+      });
       
-      if (result.recipe) {
-        // Save the generated recipe
-        await saveGeneratedRecipe(result.recipe);
+      if (result.success && result.recipe) {
         track('ai_recipe_generated', { recipeId: result.recipe.id, title: result.recipe.title });
         
         // Show success and offer navigation
@@ -103,7 +105,7 @@ const [isGenerating, setIsGenerating] = useState(false);
       });
     } finally {
       setIsGenerating(false);
-      setShowAnimation(false);
+      setShowLoading(false);
     }
   };
 
@@ -246,49 +248,12 @@ const [isGenerating, setIsGenerating] = useState(false);
         />
       </View>
 
-      {/* Immersive Cooking Animation Overlay */}
-      {showAnimation && (
-        <View style={[StyleSheet.absoluteFillObject, { zIndex: 9999 }]}>
-          <View style={{ 
-            flex: 1, 
-            backgroundColor: 'rgba(0, 0, 0, 0.92)',
-            justifyContent: 'center',
-            alignItems: 'center'
-          }}>
-            {/* Royco Branding */}
-            <View style={{
-              position: 'absolute',
-              top: 60,
-              alignItems: 'center',
-            }}>
-              <Text style={{
-                fontSize: 24,
-                fontWeight: '800',
-                color: Colors.primary,
-                marginBottom: 8,
-              }}>Royco AI Chef</Text>
-              <Text style={{
-                fontSize: 14,
-                color: 'rgba(255, 255, 255, 0.7)',
-              }}>Powered by Advanced AI</Text>
-            </View>
-            
-            <CookingSequence
-              steps={['chopping', 'mixing', 'steaming', 'frying']}
-              messages={[
-                'Analyzing your ingredients...',
-                'Selecting perfect Royco products...',
-                'Creating authentic Kenyan flavors...',
-                'Optimizing cooking techniques...',
-                'Adding Royco spices for perfection...',
-                'Finalizing your personalized recipe!'
-              ]}
-              stepDuration={2000}
-              onComplete={() => {}}
-            />
-          </View>
-        </View>
-      )}
+      {/* Enhanced Loading Spinner with Cooking Animation */}
+      <LoadingSpinner
+        visible={showLoading}
+        type="cooking"
+        text="Creating your personalized Royco-enhanced recipe..."
+      />
         </View>
       
       <Dialog 

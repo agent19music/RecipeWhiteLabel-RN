@@ -211,7 +211,7 @@ export default function HomeScreen() {
       activeOpacity={0.9}
       onPress={() => router.push(`/recipe/${item.id}`)}
     >
-      <Image source={item.image} style={styles.quickRecipeImage} />
+      <Image source={item.image as any} style={styles.quickRecipeImage} />
       <View style={styles.quickRecipeOverlay}>
         <Text style={styles.quickRecipeTime}>{item.time}</Text>
       </View>
@@ -409,6 +409,21 @@ export default function HomeScreen() {
                 <View style={styles.largeCardText}>
                   <Text style={styles.largeCardTitle}>Meal Planner</Text>
                   <Text style={styles.largeCardSubtitle}>Plan your weekly meals</Text>
+                </View>
+                <Ionicons name="arrow-forward" size={24} color={Colors.white} />
+              </View>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={[styles.largeCard, { backgroundColor: '#667EEA' }]}
+              onPress={() => router.push('/ai-recipes')}
+              activeOpacity={0.95}
+            >
+              <View style={styles.largeCardContent}>
+                <MaterialCommunityIcons name="robot" size={40} color={Colors.white} />
+                <View style={styles.largeCardText}>
+                  <Text style={styles.largeCardTitle}>AI Recipes</Text>
+                  <Text style={styles.largeCardSubtitle}>View your AI creations</Text>
                 </View>
                 <Ionicons name="arrow-forward" size={24} color={Colors.white} />
               </View>

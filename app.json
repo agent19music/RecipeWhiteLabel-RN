@@ -9,7 +9,8 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.smartkitchen.companion"
     },
     "android": {
       "adaptiveIcon": {
@@ -29,7 +30,7 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/royco.png",
+          "image": "./assets/images/royco.jpg",
           "imageWidth": 150,
           "resizeMode": "contain",
           "backgroundColor": "#DC143C"

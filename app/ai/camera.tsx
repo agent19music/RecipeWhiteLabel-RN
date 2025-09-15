@@ -1,8 +1,8 @@
-import { CookingSequence } from '@/components/CookingAnimations';
+import LoadingSpinner from '@/components/LoadingSpinner';
 import ModernButton from '@/components/ModernButton';
 import ModernChip from '@/components/ModernChip';
 import { Colors } from '@/constants/Colors';
-import { detectIngredients, generateRecipeFromIngredientsList, saveGeneratedRecipe } from '@/utils/ai';
+import { detectIngredientsFromImage, generateAIRecipe } from '@/utils/ai-enhanced';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import { CameraType, CameraView, useCameraPermissions } from 'expo-camera';
@@ -43,7 +43,8 @@ export default function AICameraScreen() {
   const [additionalIngredient, setAdditionalIngredient] = useState('');
   const [isGeneratingRecipe, setIsGeneratingRecipe] = useState(false);
   const [showIngredientInput, setShowIngredientInput] = useState(false);
-  const [showCookingAnimation, setShowCookingAnimation] = useState(false);
+  const [showLoading, setShowLoading] = useState(false);
+  const [loadingText, setLoadingText] = useState('');
   
   const cameraRef = useRef<CameraView>(null);
   const analyzeInterval = useRef<NodeJS.Timeout | null>(null);
@@ -113,10 +114,11 @@ export default function AICameraScreen() {
       });
 
       if (photo && photo.base64) {
-        // Call AI detection
-        const result = await detectIngredients(photo.base64);
+        // Call enhanced AI detection with Gemini
+        setLoadingText('Analyzing ingredients with AI...');
+        const result = await detectIngredientsFromImage(photo.base64);
         
-        if (result.ingredients && result.ingredients.length > 0) {
+        if (result.success && result.ingredients && result.ingredients.length > 0) {
           const newIngredients = result.ingredients.map(ing => ({
             name: ing.name,
             confidence: ing.confidence,
@@ -183,15 +185,17 @@ export default function AICameraScreen() {
     }
 
     setIsGeneratingRecipe(true);
-    setShowCookingAnimation(true);
+    setShowLoading(true);
+    setLoadingText('Creating your Royco-enhanced recipe...');
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
     try {
-      const result = await generateRecipeFromIngredientsList(selectedIngredients);
+      const result = await generateAIRecipe(selectedIngredients, {
+        cuisine: 'Kenyan',
+        servings: 4,
+      });
       
-      if (result.recipe) {
-        // Save the generated recipe
-        await saveGeneratedRecipe(result.recipe);
+      if (result.success && result.recipe) {
         
         // Navigate to the generated recipe
         router.replace(`/cook/${result.recipe.id}`);
@@ -201,7 +205,7 @@ export default function AICameraScreen() {
       showErrorDialog('Generation Failed', 'Unable to generate recipe. Please try again.');
     } finally {
       setIsGeneratingRecipe(false);
-      setShowCookingAnimation(false);
+      setShowLoading(false);
     }
   };
 
@@ -353,24 +357,12 @@ export default function AICameraScreen() {
           </Animated.View>
         )}
 
-        {/* Cooking Animation Overlay */}
-        {showCookingAnimation && (
-          <View style={styles.animationOverlay}>
-            <CookingSequence
-              steps={['chopping', 'mixing', 'steaming', 'frying']}
-              messages={[
-                'Analyzing your ingredients...',
-                'Mixing flavors together...',
-                'Cooking up the perfect recipe...',
-                'Almost ready!'
-              ]}
-              stepDuration={2000}
-              onComplete={() => {
-                // Animation completes when recipe is ready
-              }}
-            />
-          </View>
-        )}
+        {/* Enhanced Loading Spinner */}
+        <LoadingSpinner
+          visible={showLoading}
+          type={isGeneratingRecipe ? 'cooking' : 'default'}
+          text={loadingText}
+        />
       </View>
 
       {/* Custom Dialog */}
