@@ -2,12 +2,12 @@ import { useEffect } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import { Redirect } from 'expo-router';
 import * as Linking from 'expo-linking';
-import { useAuth } from '../context/AuthContext';
+import { useDelayedAuth } from '../hooks/useDelayedAuth';
 import { useAppState } from '../context/AppState';
 import { useTheme } from '../theme';
 
 export default function Entry() {
-  const { user, profile, loading, isOnboardingComplete, handleAuthCallback } = useAuth();
+  const { user, profile, loading, isOnboardingComplete, handleAuthCallback } = useDelayedAuth();
   const { onboarded } = useAppState();
   const { palette } = useTheme();
 

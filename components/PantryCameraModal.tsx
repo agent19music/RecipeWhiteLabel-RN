@@ -1,6 +1,6 @@
 import { Colors } from '@/constants/Colors';
 import { PantryItem } from '@/data/types';
-import { analyzeIngredientsFromImage } from '@/utils/ai';
+import { analyzeGroceryImage } from '@/lib/openai';
 import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import * as Haptics from 'expo-haptics';
@@ -131,25 +131,51 @@ export default function PantryCameraModal({
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
     try {
-      const analysis = await analyzeIngredientsFromImage(imageUri, {
-        enhanceWithNutrition: false,
-        suggestQuantities: true,
-        language: 'en',
+      // Convert image to base64
+      const response = await fetch(imageUri);
+      const blob = await response.blob();
+      const base64 = await new Promise<string>((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const result = reader.result as string;
+          resolve(result.split(',')[1]);
+        };
+        reader.readAsDataURL(blob);
       });
 
-      if (analysis.ingredients && analysis.ingredients.length > 0) {
-        const pantryItems: PantryItem[] = analysis.ingredients.map(ingredient => ({
-          id: generateItemId(),
-          title: ingredient.name,
-          qty: typeof ingredient.quantity === 'object' ? ingredient.quantity.value : ingredient.quantity || 1,
-          unit: typeof ingredient.quantity === 'object' ? ingredient.quantity.unit : 'pcs',
-          category: ingredient.category,
-        }));
+      // Analyze with OpenAI Vision
+      const result = await analyzeGroceryImage(base64);
+
+      if (result.success && result.items.length > 0) {
+        const pantryItems: PantryItem[] = result.items.map(item => {
+          const expiryDate = new Date();
+          expiryDate.setDate(expiryDate.getDate() + (item.expiryEstimate || 7));
+          
+          return {
+            id: generateItemId(),
+            title: item.name,
+            name: item.name,
+            quantity: item.quantity || 1,
+            unit: item.unit || 'pieces',
+            category: item.category,
+            expiryDate: expiryDate.toISOString().split('T')[0],
+            expiresOn: expiryDate.toISOString().split('T')[0],
+          };
+        });
 
         setDetectedItems(pantryItems);
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        
+        // Show confidence level
+        if (result.totalConfidence > 0.8) {
+          Alert.alert(
+            'Great Detection!',
+            `Found ${result.items.length} grocery items with high confidence`,
+            [{ text: 'OK' }]
+          );
+        }
       } else {
-        throw new Error('No items detected');
+        throw new Error(result.message || 'No grocery items detected');
       }
     } catch (error) {
       console.error('AI Analysis error:', error);

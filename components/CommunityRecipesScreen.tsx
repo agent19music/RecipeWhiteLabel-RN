@@ -3,15 +3,16 @@ import CommunityRecipeCard from '@/components/CommunityRecipeCard';
 import Dialog from '@/components/Dialog';
 import SubmissionCard from '@/components/SubmissionCard';
 import { Colors } from '@/constants/Colors';
-import { Challenge, ChallengeSubmission, getActiveChallenge, getTrendingSubmissions } from '@/data/challenges';
+import { Challenge, ChallengeSubmission, getTrendingSubmissions } from '@/data/challenges';
 import { getCommunityRecipes, getViralRecipes } from '@/data/community-recipes';
 import { Recipe } from '@/data/types';
 import { useDialog } from '@/hooks/useDialog';
+import { supabase } from '@/lib/supabase';
 import { track } from '@/utils/analytics';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   Animated,
   Dimensions,
@@ -38,11 +39,128 @@ export default function CommunityRecipesScreen() {
   const flatListRef = useRef<FlatList>(null);
   const submissionsFlatListRef = useRef<FlatList>(null);
   const { dialog, showDialog, showWarningDialog, showErrorDialog, showSuccessDialog, showConfirmDialog, hideDialog } = useDialog();
-  // Challenge data
-  const activeChallenge = getActiveChallenge();
-  const trendingSubmissions = getTrendingSubmissions();
+  
+  // Campaign data from Supabase
+  const [activeCampaigns, setActiveCampaigns] = useState<Challenge[]>([]);
+  const [activeChallenge, setActiveChallenge] = useState<Challenge | null>(null);
+  const [isLoadingCampaigns, setIsLoadingCampaigns] = useState(true);
+  const [trendingSubmissions, setTrendingSubmissions] = useState<ChallengeSubmission[]>([]);
 
   const tabIndicatorAnimation = useRef(new Animated.Value(0)).current;
+
+  // Fetch active campaigns from Supabase
+  useEffect(() => {
+    fetchActiveCampaigns();
+  }, []);
+
+  const fetchActiveCampaigns = async () => {
+    try {
+      setIsLoadingCampaigns(true);
+      
+      // Fetch active campaigns from Supabase
+      const { data: campaigns, error } = await supabase
+        .from('campaigns')
+        .select('*')
+        .eq('status', 'active')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching campaigns:', error);
+        showErrorDialog('Error', 'Failed to load campaigns. Please try again later.');
+        return;
+      }
+
+      if (campaigns && campaigns.length > 0) {
+        // Map Supabase campaign data to Challenge interface
+        const mappedCampaigns: Challenge[] = campaigns.map(campaign => ({
+          id: campaign.id,
+          name: campaign.title,
+          status: 'active' as const,
+          startDate: campaign.start_date,
+          endDate: campaign.end_date,
+          participants: campaign.participants_count || 0,
+          submissions: campaign.submissions_count || 0,
+          prize: campaign.prize_description || 'Amazing prizes',
+          description: campaign.description,
+          image: campaign.cover_image_url ? { uri: campaign.cover_image_url } : require('@/assets/images/airfryerchallengeposter.jpg'),
+          tags: campaign.tags ? (Array.isArray(campaign.tags) ? campaign.tags : []) : [],
+          rules: campaign.rules ? (Array.isArray(campaign.rules) ? campaign.rules : [campaign.rules]) : [],
+          totalPrizeValue: campaign.total_prize_value_kes,
+          submissionDeadline: campaign.submission_deadline || campaign.end_date,
+          backgroundColor: campaign.background_color || '#FFFBF0',
+          themeColor: campaign.theme_color || '#FF8F00',
+        }));
+
+        setActiveCampaigns(mappedCampaigns);
+        // Set the first campaign as the active challenge
+        if (mappedCampaigns.length > 0) {
+          setActiveChallenge(mappedCampaigns[0]);
+        }
+      }
+
+      // Fetch trending submissions if there's an active campaign
+      if (campaigns && campaigns.length > 0) {
+        await fetchTrendingSubmissions(campaigns[0].id);
+      }
+    } catch (error) {
+      console.error('Error in fetchActiveCampaigns:', error);
+      showErrorDialog('Error', 'Something went wrong. Please try again.');
+    } finally {
+      setIsLoadingCampaigns(false);
+    }
+  };
+
+  const fetchTrendingSubmissions = async (campaignId: string) => {
+    try {
+      // Fetch submissions from campaign_contributions table
+      const { data: submissions, error } = await supabase
+        .from('campaign_contributions')
+        .select(`
+          *,
+          profiles:user_id (
+            full_name,
+            avatar_url
+          )
+        `)
+        .eq('campaign_id', campaignId)
+        .eq('status', 'approved')
+        .order('votes_count', { ascending: false })
+        .limit(10);
+
+      if (error) {
+        console.error('Error fetching submissions:', error);
+        return;
+      }
+
+      if (submissions && submissions.length > 0) {
+        // Map to ChallengeSubmission interface
+        const mappedSubmissions: ChallengeSubmission[] = submissions.map(sub => ({
+          id: sub.id,
+          challengeId: parseInt(campaignId),
+          campaign: activeChallenge?.name || 'Active Campaign',
+          title: sub.title,
+          author: sub.profiles?.full_name || 'Anonymous Chef',
+          authorAvatar: sub.profiles?.avatar_url ? { uri: sub.profiles.avatar_url } : require('@/assets/images/food-example.jpg'),
+          submittedAt: sub.submitted_at || sub.created_at,
+          votes: sub.votes_count || 0,
+          comments: sub.comments_count || 0,
+          status: 'approved' as const,
+          images: sub.images ? (Array.isArray(sub.images) ? sub.images.map(img => ({ uri: img })) : []) : [require('@/assets/images/food-example.jpg')],
+          description: sub.description,
+          isLiked: false,
+        }));
+
+        setTrendingSubmissions(mappedSubmissions);
+      } else {
+        // Use mock data as fallback
+        setTrendingSubmissions(getTrendingSubmissions());
+      }
+    } catch (error) {
+      console.error('Error in fetchTrendingSubmissions:', error);
+      // Use mock data as fallback
+      setTrendingSubmissions(getTrendingSubmissions());
+    }
+  };
 
   const switchTab = (tab: TabType) => {
     if (tab === activeTab) return;
@@ -215,8 +333,15 @@ export default function CommunityRecipesScreen() {
       showsVerticalScrollIndicator={false}
       bounces={true}
     >
+      {/* Loading state */}
+      {isLoadingCampaigns && (
+        <View style={styles.loadingContainer}>
+          <Text style={styles.loadingText}>Loading campaigns...</Text>
+        </View>
+      )}
+
       {/* Active Challenge Hero */}
-      {activeChallenge && (
+      {!isLoadingCampaigns && activeChallenge && (
         <View style={styles.activeChallengeSection}>
           <Text style={styles.sectionTitle}>Active Challenge</Text>
           <ChallengeCard
@@ -227,7 +352,17 @@ export default function CommunityRecipesScreen() {
         </View>
       )}
 
+      {/* No campaigns message */}
+      {!isLoadingCampaigns && !activeChallenge && (
+        <View style={styles.noCampaignsContainer}>
+          <Ionicons name="trophy-outline" size={48} color={Colors.text.secondary} />
+          <Text style={styles.noCampaignsTitle}>No Active Campaigns</Text>
+          <Text style={styles.noCampaignsText}>Check back soon for exciting cooking challenges!</Text>
+        </View>
+      )}
+
       {/* Trending Submissions */}
+      {!isLoadingCampaigns && trendingSubmissions.length > 0 && (
       <View style={styles.submissionsSection}>
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Trending Submissions</Text>
@@ -256,6 +391,7 @@ export default function CommunityRecipesScreen() {
           snapToAlignment="start"
         />
       </View>
+      )}
 
       {/* Submit Your Own */}
       <TouchableOpacity
@@ -671,5 +807,35 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 8,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 40,
+  },
+  loadingText: {
+    fontSize: 16,
+    color: Colors.text.secondary,
+    marginTop: 12,
+  },
+  noCampaignsContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 60,
+    paddingHorizontal: 40,
+  },
+  noCampaignsTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: Colors.text.primary,
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  noCampaignsText: {
+    fontSize: 14,
+    color: Colors.text.secondary,
+    textAlign: 'center',
   },
 });

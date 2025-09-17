@@ -139,18 +139,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
       // Complete auth session for web browser
       WebBrowser.maybeCompleteAuthSession();
       
-      // Create redirect URI
-      const redirectTo = makeRedirectUri({
-        scheme: 'roycorecipe',
-        path: 'auth',
-      });
-
-      console.log('Redirect URI:', redirectTo);
-
+      // For mobile apps, we don't pass a redirectTo parameter
+      // Supabase will use its default callback URL which is configured in Google Console
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo,
           skipBrowserRedirect: true, // Important for React Native
         },
       });
@@ -158,10 +151,19 @@ export function AuthProvider({ children }: AuthProviderProps) {
       if (error) throw error;
 
       if (data?.url) {
+        // Create redirect URI for the auth session
+        const redirectUrl = makeRedirectUri({
+          scheme: 'roycorecipe',
+          path: 'auth',
+        });
+        
+        console.log('Auth URL:', data.url);
+        console.log('Redirect URL:', redirectUrl);
+        
         // Open the OAuth URL in the browser
         const result = await WebBrowser.openAuthSessionAsync(
           data.url,
-          redirectTo
+          redirectUrl
         );
 
         if (result.type === 'success') {
@@ -185,11 +187,22 @@ export function AuthProvider({ children }: AuthProviderProps) {
   // Handle OAuth callback
   const handleAuthCallback = async (url: string) => {
     try {
-      // Parse the URL for auth tokens
+      console.log('Callback URL received:', url);
+      
+      // Parse the URL - tokens might be in hash or query params
       const urlObj = new URL(url);
-      const accessToken = urlObj.searchParams.get('access_token');
-      const refreshToken = urlObj.searchParams.get('refresh_token');
-      const type = urlObj.searchParams.get('type');
+      
+      // First check hash parameters (common for OAuth implicit flow)
+      let params = new URLSearchParams(urlObj.hash.substring(1));
+      
+      // If not in hash, check query parameters
+      if (!params.has('access_token')) {
+        params = urlObj.searchParams;
+      }
+      
+      const accessToken = params.get('access_token');
+      const refreshToken = params.get('refresh_token');
+      const type = params.get('type');
       
       if (type === 'recovery') {
         // Handle password recovery
@@ -206,7 +219,15 @@ export function AuthProvider({ children }: AuthProviderProps) {
         if (error) throw error;
         console.log('Session set successfully:', data.session?.user?.email);
       } else {
-        throw new Error('No tokens found in callback URL');
+        // If no tokens found, try to exchange the code
+        const code = params.get('code');
+        if (code) {
+          const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+          if (error) throw error;
+          console.log('Session exchanged successfully:', data.session?.user?.email);
+        } else {
+          throw new Error('No tokens or code found in callback URL');
+        }
       }
     } catch (err: any) {
       setError(err.message || 'Failed to handle authentication callback');

@@ -128,7 +128,7 @@ export async function analyzeIngredientsFromImage(
     } else {
       // For mobile, use FileSystem
       base64Image = await FileSystem.readAsStringAsync(imageUri, {
-        encoding: FileSystem.EncodingType.Base64,
+        encoding: FileSystem.EncodingType.Base64, 
       });
       base64Image = `data:image/jpeg;base64,${base64Image}`;
     }

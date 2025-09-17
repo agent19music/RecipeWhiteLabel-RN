@@ -66,6 +66,7 @@ export default function FoodLoggerScreen() {
     
     // Validate input
     if (!capturedPhoto && foodItems.length === 0) {
+      
       Alert.alert('No Data', 'Please add food items or take a photo of your meal');
       return;
     }

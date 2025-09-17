@@ -221,6 +221,9 @@ export interface RecipeGenerationResponse {
   generationTime: number;
   cost?: number;
   debug?: any;
+  success: boolean;
+  error?: string;
+  source?: string;
 }
 
 // Vision Analysis

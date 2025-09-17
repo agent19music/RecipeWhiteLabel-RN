@@ -12,8 +12,12 @@ interface DialogState {
   actions?: Array<{
     label: string;
     variant?: 'primary' | 'secondary' | 'danger';
-    onPress: () => void;
+    onPress: (text?: string) => void;
   }>;
+  showTextInput?: boolean;
+  textInputPlaceholder?: string;
+  textInputValue?: string;
+  onTextChange?: (text: string) => void;
 }
 
 const initialState: DialogState = {
@@ -89,6 +93,43 @@ export function useDialog() {
     });
   };
 
+  const showTextInputDialog = (
+    title: string,
+    message: string,
+    placeholder: string,
+    onConfirm: (text: string) => void,
+    confirmLabel: string = 'Add'
+  ) => {
+    let inputValue = '';
+    
+    showDialog({
+      title,
+      message,
+      icon: { name: 'plus', backgroundColor: '#007AFF' },
+      showTextInput: true,
+      textInputPlaceholder: placeholder,
+      textInputValue: inputValue,
+      onTextChange: (text: string) => {
+        inputValue = text;
+      },
+      actions: [
+        {
+          label: confirmLabel,
+          variant: 'primary',
+          onPress: (text?: string) => {
+            hideDialog();
+            onConfirm(text || inputValue);
+          },
+        },
+        {
+          label: 'Cancel',
+          variant: 'secondary',
+          onPress: hideDialog,
+        },
+      ],
+    });
+  };
+
   return {
     dialog,
     showDialog,
@@ -97,5 +138,6 @@ export function useDialog() {
     showSuccessDialog,
     showWarningDialog,
     showConfirmDialog,
+    showTextInputDialog,
   };
 }

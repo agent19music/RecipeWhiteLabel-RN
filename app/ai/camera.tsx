@@ -1,80 +1,93 @@
-import LoadingSpinner from '@/components/LoadingSpinner';
-import ModernButton from '@/components/ModernButton';
-import ModernChip from '@/components/ModernChip';
-import { Colors } from '@/constants/Colors';
-import { detectIngredientsFromImage, generateAIRecipe } from '@/utils/ai-enhanced';
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import React, { useEffect, useRef, useState } from 'react';
+import {
+  ActivityIndicator,
+  Animated,
+  Dimensions,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+  Platform,
+  KeyboardAvoidingView,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { BlurView } from 'expo-blur';
 import { CameraType, CameraView, useCameraPermissions } from 'expo-camera';
 import * as Haptics from 'expo-haptics';
 import { Stack, useRouter } from 'expo-router';
-import React, { useEffect, useRef, useState } from 'react';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+
+import Badge from '@/components/ui/Badge';
 import { useDialog } from '@/hooks/useDialog';
 import Dialog from '@/components/Dialog';
-import {
-    ActivityIndicator,
-    Alert,
-    Animated,
-    Dimensions,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import foodDetection from '@/services/foodDetection';
+import { generateAIRecipe } from '@/utils/ai-enhanced';
 
 const { width, height } = Dimensions.get('window');
+const isIOS = Platform.OS === 'ios';
 
 interface DetectedIngredient {
   name: string;
   confidence: number;
-  selected: boolean;
+  id: string;
 }
 
 export default function AICameraScreen() {
-  const { dialog, showWarningDialog, showErrorDialog,hideDialog } = useDialog();
+  const { dialog, showWarningDialog, showErrorDialog, showSuccessDialog, hideDialog } = useDialog();
   const router = useRouter();
   const [permission, requestPermission] = useCameraPermissions();
   const [facing, setFacing] = useState<CameraType>('back');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [detectedIngredients, setDetectedIngredients] = useState<DetectedIngredient[]>([]);
-  const [additionalIngredient, setAdditionalIngredient] = useState('');
+  const [customIngredient, setCustomIngredient] = useState('');
   const [isGeneratingRecipe, setIsGeneratingRecipe] = useState(false);
   const [showIngredientInput, setShowIngredientInput] = useState(false);
-  const [showLoading, setShowLoading] = useState(false);
-  const [loadingText, setLoadingText] = useState('');
+  const [tfReady, setTfReady] = useState(false);
+  const [capturedPhoto, setCapturedPhoto] = useState<string | null>(null);
   
   const cameraRef = useRef<CameraView>(null);
-  const analyzeInterval = useRef<NodeJS.Timeout | null>(null);
-  const fadeAnim = useRef(new Animated.Value(1)).current;
-  const pulseAnim = useRef(new Animated.Value(1)).current;
+  const panelAnimation = useRef(new Animated.Value(0)).current;
+  const scaleAnimation = useRef(new Animated.Value(1)).current;
+  const rotateAnimation = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    // Start analyze pulse animation
-    const pulse = () => {
+    // Initialize TensorFlow models
+    initializeTensorFlow();
+    
+    // Start capture button animation
+    Animated.loop(
       Animated.sequence([
-        Animated.timing(pulseAnim, {
-          toValue: 1.2,
-          duration: 1000,
+        Animated.timing(scaleAnimation, {
+          toValue: 1.05,
+          duration: 1500,
           useNativeDriver: true,
         }),
-        Animated.timing(pulseAnim, {
+        Animated.timing(scaleAnimation, {
           toValue: 1,
-          duration: 1000,
+          duration: 1500,
           useNativeDriver: true,
         }),
-      ]).start(() => pulse());
-    };
-    pulse();
+      ])
+    ).start();
 
     return () => {
-      if (analyzeInterval.current) {
-        clearInterval(analyzeInterval.current);
-      }
+      foodDetection.dispose();
     };
   }, []);
+
+  const initializeTensorFlow = async () => {
+    try {
+      await foodDetection.initialize();
+      setTfReady(true);
+    } catch (error) {
+      console.error('Failed to initialize TensorFlow:', error);
+      // Fallback to Gemini-only mode
+      setTfReady(false);
+    }
+  };
 
   if (!permission) {
     return <View style={styles.container} />;
@@ -84,16 +97,16 @@ export default function AICameraScreen() {
     return (
       <View style={styles.permissionContainer}>
         <Stack.Screen options={{ title: 'AI Camera', headerShown: true }} />
-        <MaterialCommunityIcons name="camera-off" size={64} color={Colors.gray[400]} />
+        <MaterialCommunityIcons name="camera-off" size={64} color="#8E8E93" />
         <Text style={styles.permissionText}>
           We need camera permission to detect ingredients
         </Text>
-        <ModernButton
-          title="Grant Permission"
+        <TouchableOpacity 
+          style={styles.permissionButton}
           onPress={requestPermission}
-          variant="primary"
-          size="large"
-        />
+        >
+          <Text style={styles.permissionButtonText}>Grant Permission</Text>
+        </TouchableOpacity>
       </View>
     );
   }
@@ -101,115 +114,136 @@ export default function AICameraScreen() {
   const captureAndAnalyze = async () => {
     if (!cameraRef.current || isAnalyzing) return;
 
-    setIsAnalyzing(true);
+    // Haptic feedback
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    
+    // Start loading animation
+    setIsAnalyzing(true);
+    Animated.timing(rotateAnimation, {
+      toValue: 1,
+      duration: 1000,
+      useNativeDriver: true,
+    }).start();
 
     try {
-      // Capture image silently
+      // Capture photo
       const photo = await cameraRef.current.takePictureAsync({
         base64: true,
-        quality: 0.7,
-        skipProcessing: true,
+        quality: 0.8,
+        skipProcessing: false,
         exif: false,
       });
 
       if (photo && photo.base64) {
-        // Call enhanced AI detection with Gemini
-        setLoadingText('Analyzing ingredients with AI...');
-        const result = await detectIngredientsFromImage(photo.base64);
+        setCapturedPhoto(photo.uri);
         
-        if (result.success && result.ingredients && result.ingredients.length > 0) {
-          const newIngredients = result.ingredients.map(ing => ({
-            name: ing.name,
-            confidence: ing.confidence,
-            selected: ing.confidence > 0.7, // Auto-select high confidence items
+        // Detect ingredients using TensorFlow + Gemini
+        const detectedFoods = await foodDetection.detectCombined(
+          null, // We'll pass image tensor in a future update
+          photo.base64
+        );
+        
+        if (detectedFoods.length > 0) {
+          // Animate panel appearance
+          Animated.spring(panelAnimation, {
+            toValue: 1,
+            tension: 50,
+            friction: 8,
+            useNativeDriver: true,
+          }).start();
+          
+          // Add detected ingredients with unique IDs
+          const newIngredients = detectedFoods.map(food => ({
+            id: `${Date.now()}-${Math.random()}`,
+            name: food.name,
+            confidence: food.confidence,
           }));
           
           setDetectedIngredients(prev => {
-            const existing = new Set(prev.map(i => i.name.toLowerCase()));
+            const existingNames = new Set(prev.map(i => i.name.toLowerCase()));
             const filtered = newIngredients.filter(
-              ing => !existing.has(ing.name.toLowerCase())
+              ing => !existingNames.has(ing.name?.toLowerCase())
             );
             return [...prev, ...filtered];
           });
 
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         } else {
-          showWarningDialog('No Ingredients Detected', 'Try pointing the camera at different ingredients or adjust lighting.');
+          showWarningDialog(
+            'No Ingredients Detected',
+            'Try adjusting the camera angle or lighting for better detection.'
+          );
         }
       }
     } catch (error) {
       console.error('Detection error:', error);
-      showErrorDialog('Detection Failed', 'Unable to analyze image. Please try again.');
+      showErrorDialog(
+        'Detection Failed',
+        'Unable to analyze the image. Please try again.'
+      );
     } finally {
       setIsAnalyzing(false);
+      // Reset rotation
+      Animated.timing(rotateAnimation, {
+        toValue: 0,
+        duration: 300,
+        useNativeDriver: true,
+      }).start();
     }
   };
 
-  const toggleIngredient = (index: number) => {
-    setDetectedIngredients(prev => 
-      prev.map((ing, i) => 
-        i === index ? { ...ing, selected: !ing.selected } : ing
-      )
-    );
+  const removeIngredient = (id: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setDetectedIngredients(prev => prev.filter(ing => ing.id !== id));
   };
 
   const addCustomIngredient = () => {
-    if (additionalIngredient.trim()) {
+    if (customIngredient.trim()) {
       const newIngredient: DetectedIngredient = {
-        name: additionalIngredient.trim(),
+        id: `custom-${Date.now()}`,
+        name: customIngredient.trim(),
         confidence: 1.0,
-        selected: true,
       };
       setDetectedIngredients(prev => [...prev, newIngredient]);
-      setAdditionalIngredient('');
+      setCustomIngredient('');
       setShowIngredientInput(false);
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     }
   };
 
-  const removeIngredient = (index: number) => {
-    setDetectedIngredients(prev => prev.filter((_, i) => i !== index));
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-  };
-
   const generateRecipe = async () => {
-    const selectedIngredients = detectedIngredients
-      .filter(ing => ing.selected)
-      .map(ing => ing.name);
+    const ingredientNames = detectedIngredients.map(ing => ing.name);
 
-    if (selectedIngredients.length === 0) {
-      showWarningDialog('No Ingredients Selected', 'Please select at least one ingredient to generate a recipe.');
+    if (ingredientNames.length === 0) {
+      showWarningDialog('No Ingredients', 'Please detect or add at least one ingredient.');
       return;
     }
 
     setIsGeneratingRecipe(true);
-    setShowLoading(true);
-    setLoadingText('Creating your Royco-enhanced recipe...');
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
     try {
-      const result = await generateAIRecipe(selectedIngredients, {
+      const result = await generateAIRecipe(ingredientNames, {
         cuisine: 'Kenyan',
         servings: 4,
       });
       
       if (result.success && result.recipe) {
-        
-        // Navigate to the generated recipe
-        router.replace(`/cook/${result.recipe.id}`);
+        showSuccessDialog(
+          'Recipe Created!',
+          'Your personalized Royco recipe is ready.'
+        );
+        setTimeout(() => {
+          router.replace(`/cook/${result.recipe.id}`);
+        }, 1500);
       }
     } catch (error) {
       console.error('Recipe generation error:', error);
       showErrorDialog('Generation Failed', 'Unable to generate recipe. Please try again.');
     } finally {
       setIsGeneratingRecipe(false);
-      setShowLoading(false);
     }
   };
-
-  const selectedCount = detectedIngredients.filter(ing => ing.selected).length;
 
   return (
     <>
@@ -235,7 +269,7 @@ export default function AICameraScreen() {
                 onPress={() => router.back()}
               >
                 <BlurView intensity={80} tint="dark" style={styles.blurButton}>
-                  <Ionicons name="close" size={24} color={Colors.white} />
+                  <Ionicons name="close" size={24} color="#FFFFFF" />
                 </BlurView>
               </TouchableOpacity>
               
@@ -244,7 +278,7 @@ export default function AICameraScreen() {
                 onPress={() => setFacing(current => current === 'back' ? 'front' : 'back')}
               >
                 <BlurView intensity={80} tint="dark" style={styles.blurButton}>
-                  <Ionicons name="camera-reverse" size={24} color={Colors.white} />
+                  <Ionicons name="camera-reverse" size={24} color="#FFFFFF" />
                 </BlurView>
               </TouchableOpacity>
             </SafeAreaView>
@@ -258,7 +292,7 @@ export default function AICameraScreen() {
 
             {/* Bottom Controls */}
             <SafeAreaView style={styles.bottomControls} edges={['bottom']}>
-              <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
+              <Animated.View style={{ transform: [{ scale: scaleAnimation }] }}>
                 <TouchableOpacity
                   style={[styles.captureButton, isAnalyzing && styles.captureButtonAnalyzing]}
                   onPress={captureAndAnalyze}
@@ -266,9 +300,9 @@ export default function AICameraScreen() {
                   accessibilityLabel="Capture and analyze"
                 >
                   {isAnalyzing ? (
-                    <ActivityIndicator size="large" color={Colors.white} />
+                    <ActivityIndicator size="large" color="#FFFFFF" />
                   ) : (
-                    <MaterialCommunityIcons name="camera" size={32} color={Colors.white} />
+                    <MaterialCommunityIcons name="camera" size={32} color="#FFFFFF" />
                   )}
                 </TouchableOpacity>
               </Animated.View>
@@ -278,17 +312,30 @@ export default function AICameraScreen() {
 
         {/* Ingredients Panel */}
         {detectedIngredients.length > 0 && (
-          <Animated.View style={[styles.ingredientsPanel, { opacity: fadeAnim }]}>
+          <Animated.View 
+            style={[
+              styles.ingredientsPanel,
+              {
+                transform: [{
+                  translateY: panelAnimation.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [300, 0],
+                  }),
+                }],
+              },
+            ]}
+          >
+            <View style={styles.panelHandle} />
             <ScrollView style={styles.ingredientsScroll} showsVerticalScrollIndicator={false}>
               <View style={styles.ingredientsHeader}>
                 <Text style={styles.ingredientsTitle}>
-                  Detected Ingredients ({selectedCount})
+                  Detected Ingredients
                 </Text>
                 <TouchableOpacity
                   style={styles.addButton}
                   onPress={() => setShowIngredientInput(true)}
                 >
-                  <Ionicons name="add" size={20} color={Colors.primary} />
+                  <Ionicons name="add-circle" size={28} color="#007AFF" />
                 </TouchableOpacity>
               </View>
 
@@ -298,71 +345,64 @@ export default function AICameraScreen() {
                   <TextInput
                     style={styles.input}
                     placeholder="Add ingredient..."
-                    value={additionalIngredient}
-                    onChangeText={setAdditionalIngredient}
+                    placeholderTextColor="#8E8E93"
+                    value={customIngredient}
+                    onChangeText={setCustomIngredient}
                     onSubmitEditing={addCustomIngredient}
                     autoFocus
                   />
                   <TouchableOpacity style={styles.inputButton} onPress={addCustomIngredient}>
-                    <Ionicons name="checkmark" size={20} color={Colors.primary} />
+                    <Ionicons name="checkmark-circle" size={24} color="#34C759" />
                   </TouchableOpacity>
                   <TouchableOpacity 
                     style={styles.inputButton} 
                     onPress={() => setShowIngredientInput(false)}
                   >
-                    <Ionicons name="close" size={20} color={Colors.gray[500]} />
+                    <Ionicons name="close-circle" size={24} color="#FF3B30" />
                   </TouchableOpacity>
                 </View>
               )}
 
-              {/* Ingredient Chips */}
+              {/* Ingredient Badges */}
               <View style={styles.ingredientsGrid}>
-                {detectedIngredients.map((ingredient, index) => (
-                  <View key={index} style={styles.ingredientChipContainer}>
-                    <ModernChip
-                      label={ingredient.name}
-                      selected={ingredient.selected}
-                      onToggle={() => toggleIngredient(index)}
-                    />
-                    <TouchableOpacity
-                      style={styles.removeButton}
-                      onPress={() => removeIngredient(index)}
-                    >
-                      <Ionicons name="close-circle" size={16} color={Colors.gray[400]} />
-                    </TouchableOpacity>
-                  </View>
+                {detectedIngredients.map((ingredient) => (
+                  <Badge
+                    key={ingredient.id}
+                    label={ingredient.name}
+                    confidence={ingredient.confidence}
+                    onRemove={() => removeIngredient(ingredient.id)}
+                  />
                 ))}
               </View>
             </ScrollView>
 
             {/* Generate Button */}
-            {selectedCount > 0 && (
+            {detectedIngredients.length > 0 && (
               <View style={styles.generateContainer}>
-                <ModernButton
-                  title={isGeneratingRecipe ? 'Generating...' : `Generate Recipe (${selectedCount})`}
+                <TouchableOpacity
+                  style={[
+                    styles.generateButton,
+                    isGeneratingRecipe && styles.generateButtonDisabled
+                  ]}
                   onPress={generateRecipe}
-                  variant="primary"
-                  size="large"
                   disabled={isGeneratingRecipe}
-                  icon={
-                    isGeneratingRecipe ? (
-                      <ActivityIndicator size="small" color={Colors.white} />
-                    ) : (
-                      <MaterialCommunityIcons name="chef-hat" size={20} color={Colors.white} />
-                    )
-                  }
-                />
+                >
+                  {isGeneratingRecipe ? (
+                    <ActivityIndicator size="small" color="#FFFFFF" />
+                  ) : (
+                    <>
+                      <MaterialCommunityIcons name="chef-hat" size={20} color="#FFFFFF" />
+                      <Text style={styles.generateButtonText}>
+                        Generate Recipe ({detectedIngredients.length})
+                      </Text>
+                    </>
+                  )}
+                </TouchableOpacity>
               </View>
             )}
           </Animated.View>
         )}
 
-        {/* Enhanced Loading Spinner */}
-        <LoadingSpinner
-          visible={showLoading}
-          type={isGeneratingRecipe ? 'cooking' : 'default'}
-          text={loadingText}
-        />
       </View>
 
       {/* Custom Dialog */}
@@ -381,20 +421,32 @@ export default function AICameraScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.black,
+    backgroundColor: '#000000',
   },
   permissionContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 40,
-    backgroundColor: Colors.background,
+    backgroundColor: '#FFFFFF',
   },
   permissionText: {
     fontSize: 16,
-    color: Colors.text.secondary,
+    color: '#8E8E93',
     textAlign: 'center',
     marginVertical: 20,
+  },
+  permissionButton: {
+    backgroundColor: '#007AFF',
+    paddingHorizontal: 32,
+    paddingVertical: 14,
+    borderRadius: 25,
+    marginTop: 16,
+  },
+  permissionButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
   },
   camera: {
     flex: 1,
@@ -426,7 +478,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   focusFrame: {
-    borderColor: Colors.white,
+    borderColor: '#FFFFFF',
     borderWidth: 2,
     borderRadius: 16,
     width: width * 0.7,
@@ -436,7 +488,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#00000040',
   },
   focusText: {
-    color: Colors.white,
+    color: '#FFFFFF',
     fontSize: 14,
     opacity: 0.8,
   },
@@ -449,7 +501,7 @@ const styles = StyleSheet.create({
     height: 74,
     borderRadius: 37,
     borderWidth: 3,
-    borderColor: Colors.white,
+    borderColor: '#FFFFFF',
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#ffffff20',
@@ -462,10 +514,24 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: Colors.white,
+    backgroundColor: '#FFFFFF',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     maxHeight: height * 0.5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  panelHandle: {
+    width: 40,
+    height: 5,
+    backgroundColor: '#D1D1D6',
+    borderRadius: 3,
+    alignSelf: 'center',
+    marginTop: 8,
+    marginBottom: 8,
   },
   ingredientsScroll: {
     maxHeight: height * 0.35,
@@ -478,15 +544,12 @@ const styles = StyleSheet.create({
     paddingBottom: 16,
   },
   ingredientsTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: Colors.text.primary,
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#000000',
+    letterSpacing: -0.5,
   },
   addButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: Colors.surface,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -501,16 +564,13 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 40,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: '#E5E5EA',
     borderRadius: 20,
     paddingHorizontal: 16,
-    fontSize: 14,
+    fontSize: 15,
+    backgroundColor: '#F2F2F7',
   },
   inputButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: Colors.surface,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -528,13 +588,31 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: -4,
     right: -4,
-    backgroundColor: Colors.white,
+    backgroundColor: '#FFFFFF',
     borderRadius: 8,
   },
   generateContainer: {
     padding: 20,
     borderTopWidth: 1,
-    borderTopColor: Colors.border,
+    borderTopColor: '#E5E5EA',
+  },
+  generateButton: {
+    backgroundColor: '#007AFF',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 16,
+    borderRadius: 14,
+    gap: 8,
+  },
+  generateButtonDisabled: {
+    opacity: 0.6,
+  },
+  generateButtonText: {
+    color: '#FFFFFF',
+    fontSize: 17,
+    fontWeight: '600',
+    letterSpacing: -0.3,
   },
   animationOverlay: {
     position: 'absolute',

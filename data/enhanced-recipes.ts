@@ -1,9 +1,9 @@
 // Enhanced recipes with detailed cooking instructions and rich metadata
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getUserRecipes } from '../utils/ai';
+import { getInternationalRecipes } from './international-recipes';
 import { getAllRecipes } from './recipes';
 import { Recipe } from './types';
-import { getInternationalRecipes } from './international-recipes';
 
 // Helper to create recipe IDs
 const createId = (prefix: string, num: number) => `${prefix}-${num.toString().padStart(3, '0')}`;
@@ -1744,6 +1744,19 @@ export async function getRecipeById(id: string): Promise<Recipe | null> {
       recipe = userRecipes.find(r => r.id === id);
     } catch (error) {
       console.error('Error fetching user recipes:', error);
+    }
+  }
+  
+  // Check AI-generated recipes
+  if (!recipe) {
+    try {
+      const aiRecipes = await AsyncStorage.getItem('ai_generated_recipes');
+      if (aiRecipes) {
+        const aiRecipeList = JSON.parse(aiRecipes);
+        recipe = aiRecipeList.find((r: any) => r.id === id);
+      }
+    } catch (error) {
+      console.error('Error fetching AI recipes:', error);
     }
   }
   

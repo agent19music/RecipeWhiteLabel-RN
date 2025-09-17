@@ -1,9 +1,9 @@
+import { useState } from 'react';
+import { enableLegacyWebImplementation } from 'react-native-reanimated';
 import { DarkTheme, DefaultTheme, ThemeProvider as NavThemeProvider } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useState, useEffect } from 'react';
-import 'react-native-reanimated';
 
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { ThemeProvider } from '../theme';
@@ -27,9 +27,9 @@ export default function RootLayout() {
   }
 
   return (
-    <NavThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <ThemeProvider>
-        <AuthProvider>
+    <AuthProvider>
+      <NavThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+        <ThemeProvider>
           <AppStateProvider>
             <Stack screenOptions={{ headerShown: false }}>
               <Stack.Screen name="index" options={{ headerShown: false }} />
@@ -40,8 +40,8 @@ export default function RootLayout() {
             </Stack>
             <StatusBar style="auto" />
           </AppStateProvider>
-        </AuthProvider>
-      </ThemeProvider>
-    </NavThemeProvider>
+        </ThemeProvider>
+      </NavThemeProvider>
+    </AuthProvider>
   );
 }

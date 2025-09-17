@@ -6,10 +6,8 @@ import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
-import Dialog from '@/components/Dialog';
 import { useDialog } from '@/hooks/useDialog';
 import {
-    Alert,
     Animated,
     Dimensions,
     ScrollView,
@@ -33,7 +31,7 @@ export default function CookingScreen() {
   
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
-  const timerInterval = useRef<NodeJS.Timeout | null>(null);
+    const timerInterval = useRef<NodeJS.Timeout | null>(null);
   const { dialog, showWarningDialog, showConfirmDialog, showDialog, hideDialog } = useDialog();
 
   useEffect(() => {
@@ -206,7 +204,7 @@ export default function CookingScreen() {
   const progress = ((currentStep + 1) / steps.length) * 100;
 
   return (
-    <>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <Stack.Screen 
         options={{ 
           title: recipe.title,
@@ -217,16 +215,18 @@ export default function CookingScreen() {
           headerLeft: () => (
             <TouchableOpacity
               onPress={() => {
-                Alert.alert(
-                  'Exit Cooking?',
-                  'Are you sure you want to stop cooking? Your progress will be lost.',
-                  [
-                    { text: 'Cancel', style: 'cancel' },
-                    { text: 'Exit', style: 'destructive', onPress: () => router.back() },
+                showConfirmDialog({ 
+                    title: 'Exit Cooking?',
+                  message: 'Are you sure you want to stop cooking? Your progress will be lost.',
+                  actions: [
+                    { label: 'Cancel', variant: 'secondary', onPress: () => {} },
+                    { label: 'Exit', variant: 'destructive', onPress: () => router.back() }
                   ]
-                );
+                });
+                 
               }}
-              style={{ marginLeft: -8 }}
+                          
+              style={{ marginLeft: 12 }}
             >
               <Ionicons name="close" size={24} color={Colors.text.primary} />
             </TouchableOpacity>
@@ -377,7 +377,7 @@ export default function CookingScreen() {
           </TouchableOpacity>
         </View>
       </SafeAreaView>
-    </>
+    </SafeAreaView>
   );
 }
 

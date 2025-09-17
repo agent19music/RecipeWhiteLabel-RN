@@ -22,6 +22,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { pantry as seedPantry } from '../../../data/seed';
 import { track } from '../../../utils/analytics';
+import Dialog from '@/components/Dialog';
+import { useDialog } from '@/hooks/useDialog';
 
 const { width } = Dimensions.get('window');
 
@@ -79,7 +81,7 @@ export default function EnhancedPantryScreen() {
   const [selectedStore, setSelectedStore] = useState<'carrefour' | 'jumia'>('carrefour');
   const [isLoadingPrices, setIsLoadingPrices] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  
+  const { dialog, showDialog, hideDialog,showErrorDialog,showSuccessDialog,showWarningDialog } = useDialog();
   // Form states for add/edit
   const [formTitle, setFormTitle] = useState('');
   const [formQty, setFormQty] = useState('');
@@ -127,28 +129,29 @@ export default function EnhancedPantryScreen() {
   };
 
   const handleDelete = (itemId: string) => {
-    Alert.alert(
-      'Delete Item',
-      'Are you sure you want to delete this item?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: () => {
-            const newItems = items.filter(item => item.id !== itemId);
-            savePantryItems(newItems);
-            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-            track('pantry_item_deleted');
-          }
-        }
-      ]
-    );
+      showWarningDialog('Delete Item', 'Are you sure you want to delete this item?', );
+    // Alert.alert(
+    //   'Delete Item',
+    //   'Are you sure you want to delete this item?',
+    //   [
+    //     { text: 'Cancel', style: 'cancel' },
+    //     {
+    //       text: 'Delete',
+    //       style: 'destructive',
+    //       onPress: () => {
+    //         const newItems = items.filter(item => item.id !== itemId);
+    //         savePantryItems(newItems);
+    //         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    //         track('pantry_item_deleted');
+    //       }
+    //     }
+    //   ]
+    // );
   };
 
   const handleSaveEdit = () => {
     if (!formTitle.trim() || !formQty.trim() || !formUnit.trim()) {
-      Alert.alert('Error', 'Please fill in all required fields');
+      showErrorDialog('Error', 'Please fill in all required fields');
       return;
     }
 
@@ -174,7 +177,7 @@ export default function EnhancedPantryScreen() {
 
   const handleAddItem = () => {
     if (!formTitle.trim() || !formQty.trim() || !formUnit.trim()) {
-      Alert.alert('Error', 'Please fill in all required fields');
+      showErrorDialog('Error', 'Please fill in all required fields');
       return;
     }
 

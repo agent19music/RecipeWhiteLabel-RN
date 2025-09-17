@@ -1,9 +1,9 @@
 import { Colors } from '@/constants/Colors';
 import { Ionicons, MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
-import { differenceInDays, parseISO } from 'date-fns';
+import { differenceInDays, parseISO, addDays } from 'date-fns';
 import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import {
     ScrollView,
     StyleSheet,
@@ -11,23 +11,74 @@ import {
     TextInput,
     TouchableOpacity,
     View,
+    RefreshControl,
+    ActivityIndicator,
+    Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import PantryAddModal from '../../components/PantryAddModal';
 import PantryItemActionsModal from '../../components/PantryItemActionsModal';
-import { pantry as seedPantry } from '../../data/seed';
 import { PantryItem } from '../../data/types';
 import { track } from '../../utils/analytics';
+import { useAuth } from '../../context/AuthContext';
+import { pantryService, SupabasePantryItem } from '../../services/pantryService';
+import { supabase } from '../../lib/supabase';
 
 export default function PantryScreen() {
   const router = useRouter();
-  const [items, setItems] = useState<PantryItem[]>(seedPantry);
+  const { user, loading: authLoading } = useAuth();
+  const [items, setItems] = useState<PantryItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
   const [actionsModal, setActionsModal] = useState<{
     visible: boolean;
     item: PantryItem | null;
   }>({ visible: false, item: null });
+
+  // Load pantry items from Supabase
+  const loadPantryItems = useCallback(async () => {
+    if (!user) return;
+    
+    try {
+      const supabaseItems = await pantryService.getPantryItems();
+      const convertedItems = supabaseItems.map(item => pantryService.convertToLocalFormat(item));
+      setItems(convertedItems);
+    } catch (error) {
+      console.error('Error loading pantry items:', error);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, [user]);
+
+  // Set up real-time subscription
+  useEffect(() => {
+    if (!user) return;
+    
+    // Set user ID for pantry service
+    pantryService.setUserId(user.id);
+    
+    // Initial load
+    loadPantryItems();
+    
+    // Subscribe to real-time changes
+    const subscription = pantryService.subscribeToChanges((payload) => {
+      console.log('Pantry change detected:', payload);
+      loadPantryItems(); // Reload on any change
+    });
+    
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [user, loadPantryItems]);
+
+  // Handle pull to refresh
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    loadPantryItems();
+  }, [loadPantryItems]);
 
   // Sort items by expiry date
   const sortedItems = useMemo(() => {
@@ -79,9 +130,22 @@ export default function PantryScreen() {
     router.push('/(tabs)/pantry/smart-shopping' as any);
   };
 
-  const handleAddItems = (newItems: PantryItem[]) => {
-    setItems(prev => [...prev, ...newItems]);
-    track('pantry_items_added', { count: newItems.length });
+  const handleAddItems = async (newItems: PantryItem[]) => {
+    if (!user) {
+      Alert.alert('Sign In Required', 'Please sign in to manage your pantry');
+      return;
+    }
+
+    try {
+      const supabaseItems = newItems.map(item => pantryService.convertToSupabaseFormat(item));
+      await pantryService.addMultiplePantryItems(supabaseItems);
+      track('pantry_items_added', { count: newItems.length });
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      // Real-time subscription will update the list automatically
+    } catch (error) {
+      console.error('Error adding items:', error);
+      Alert.alert('Error', 'Failed to add items to pantry');
+    }
   };
 
   const handleItemActions = (item: PantryItem) => {
@@ -89,31 +153,120 @@ export default function PantryScreen() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   };
 
-  const handleEditItem = (item: PantryItem) => {
-    // For now, just show an alert. In a full implementation, you'd open an edit modal
-    console.log('Edit item:', item);
+  const handleEditItem = async (item: PantryItem, updates: Partial<PantryItem>) => {
+    if (!user) return;
+    
+    try {
+      const supabaseUpdates = pantryService.convertToSupabaseFormat(updates);
+      await pantryService.updatePantryItem(item.id, supabaseUpdates);
+      track('pantry_item_edited', { itemName: item.title || item.name });
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    } catch (error) {
+      console.error('Error updating item:', error);
+      Alert.alert('Error', 'Failed to update item');
+    }
   };
 
-  const handleDeleteItem = (item: PantryItem) => {
-    setItems(prev => prev.filter(i => i.id !== item.id));
-    track('pantry_item_deleted', { itemName: item.title || item.name });
+  const handleDeleteItem = async (item: PantryItem) => {
+    if (!user) return;
+    
+    try {
+      await pantryService.deletePantryItem(item.id);
+      track('pantry_item_deleted', { itemName: item.title || item.name });
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    } catch (error) {
+      console.error('Error deleting item:', error);
+      Alert.alert('Error', 'Failed to delete item');
+    }
   };
 
-  const handlePinItem = (item: PantryItem) => {
-    setItems(prev => prev.map(i => 
-      i.id === item.id ? { ...i, isPinned: !i.isPinned } : i
-    ));
+  const handlePinItem = async (item: PantryItem) => {
+    if (!user) return;
+    
+    try {
+      await pantryService.togglePinStatus(item.id);
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    } catch (error) {
+      console.error('Error toggling pin:', error);
+    }
   };
 
-  const handleMarkLowStock = (item: PantryItem) => {
-    setItems(prev => prev.map(i => 
-      i.id === item.id ? { ...i, isLowStock: !i.isLowStock } : i
-    ));
+  const handleMarkLowStock = async (item: PantryItem) => {
+    if (!user) return;
+    
+    try {
+      await pantryService.toggleLowStockStatus(item.id);
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    } catch (error) {
+      console.error('Error toggling low stock:', error);
+    }
   };
+
+  // Show loading state
+  if (authLoading || (user && loading)) {
+    return (
+      <SafeAreaView style={styles.container} edges={['top']}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={Colors.primary} />
+          <Text style={styles.loadingText}>Loading your pantry...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // Show auth gate if not logged in
+  if (!user) {
+    return (
+      <SafeAreaView style={styles.container} edges={['top']}>
+        <View style={styles.authGateContainer}>
+          <View style={styles.authIconContainer}>
+            <MaterialCommunityIcons name="fridge-outline" size={80} color={Colors.primary} />
+          </View>
+          <Text style={styles.authTitle}>Your Personal Pantry</Text>
+          <Text style={styles.authSubtitle}>
+            Sign in to manage your ingredients, track expiry dates, and use AI scanning
+          </Text>
+          
+          <View style={styles.authFeatures}>
+            <View style={styles.authFeature}>
+              <Ionicons name="camera" size={24} color={Colors.primary} />
+              <Text style={styles.authFeatureText}>AI-powered grocery scanning</Text>
+            </View>
+            <View style={styles.authFeature}>
+              <Ionicons name="sync" size={24} color={Colors.primary} />
+              <Text style={styles.authFeatureText}>Real-time sync across devices</Text>
+            </View>
+            <View style={styles.authFeature}>
+              <Ionicons name="notifications" size={24} color={Colors.primary} />
+              <Text style={styles.authFeatureText}>Expiry date alerts</Text>
+            </View>
+          </View>
+
+          <TouchableOpacity 
+            style={styles.signInButton}
+            onPress={() => router.push('/auth/signin')}
+          >
+            <Text style={styles.signInButtonText}>Sign In to Continue</Text>
+            <Ionicons name="arrow-forward" size={20} color={Colors.white} />
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={[Colors.primary]}
+            tintColor={Colors.primary}
+          />
+        }
+      >
         {/* Header */}
         <View style={styles.header}>
           <View>
@@ -300,6 +453,76 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.background,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: Colors.text.secondary,
+  },
+  authGateContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 32,
+  },
+  authIconContainer: {
+    width: 140,
+    height: 140,
+    borderRadius: 70,
+    backgroundColor: Colors.primary + '10',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  authTitle: {
+    fontSize: 28,
+    fontWeight: '700',
+    color: Colors.text.primary,
+    marginBottom: 12,
+  },
+  authSubtitle: {
+    fontSize: 16,
+    color: Colors.text.secondary,
+    textAlign: 'center',
+    lineHeight: 24,
+    marginBottom: 32,
+  },
+  authFeatures: {
+    width: '100%',
+    marginBottom: 32,
+  },
+  authFeature: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    gap: 16,
+  },
+  authFeatureText: {
+    fontSize: 15,
+    color: Colors.text.primary,
+    flex: 1,
+  },
+  signInButton: {
+    backgroundColor: Colors.primary,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 32,
+    borderRadius: 12,
+    gap: 8,
+    width: '100%',
+  },
+  signInButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: Colors.white,
   },
   header: {
     flexDirection: 'row',

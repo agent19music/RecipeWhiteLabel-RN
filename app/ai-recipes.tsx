@@ -5,7 +5,6 @@ import { Colors } from '@/constants/Colors';
 import { useDialog } from '@/hooks/useDialog';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { LoadingIndicator } from '@rn-nui/loading-indicator';
 import { format } from 'date-fns';
 import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';

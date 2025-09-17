@@ -1,17 +1,14 @@
 import { Colors } from '@/constants/Colors';
-import { LoadingIndicator } from '@rn-nui/loading-indicator';
 import { BlurView } from 'expo-blur';
 import LottieView from 'lottie-react-native';
 import React from 'react';
 import {
-  Dimensions,
+  ActivityIndicator,
   Modal,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
-
-const { width, height } = Dimensions.get('window');
 
 interface LoadingSpinnerProps {
   visible?: boolean;
@@ -51,11 +48,9 @@ export default function LoadingSpinner({
 
     return (
       <View style={styles.defaultContainer}>
-        <LoadingIndicator
-          size={size}
+        <ActivityIndicator
+          size={typeof size === 'number' ? 'large' : size}
           color={color}
-          containerSize={type === 'minimal' ? undefined : 80}
-          containerColor={type === 'minimal' ? undefined : Colors.surface}
         />
         {text && (
           <Text style={styles.text}>{text}</Text>
@@ -96,11 +91,9 @@ export function InlineSpinner({
   color?: string;
 }) {
   return (
-    <LoadingIndicator
-      size={size}
+    <ActivityIndicator
+      size={typeof size === 'number' ? 'large' : size}
       color={color}
-      containerSize={undefined}
-      containerColor={undefined}
     />
   );
 }

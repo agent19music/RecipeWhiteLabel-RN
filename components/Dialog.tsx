@@ -1,17 +1,18 @@
-import React from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  Modal,
-  Dimensions,
-  Animated,
-  Easing,
-} from 'react-native';
-import { BlurView } from 'expo-blur';
 import { Colors } from '@/constants/Colors';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { BlurView } from 'expo-blur';
+import React from 'react';
+import {
+  Animated,
+  Dimensions,
+  Easing,
+  Modal,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const { width } = Dimensions.get('window');
@@ -29,9 +30,13 @@ interface DialogProps {
   actions?: {
     label: string;
     variant?: 'primary' | 'secondary' | 'danger';
-    onPress: () => void;
+    onPress: (text?: string) => void;
   }[];
   closeOnBackdropPress?: boolean;
+  showTextInput?: boolean;
+  textInputPlaceholder?: string;
+  textInputValue?: string;
+  onTextChange?: (text: string) => void;
 }
 
 export default function Dialog({
@@ -42,7 +47,10 @@ export default function Dialog({
   icon,
   actions = [],
   closeOnBackdropPress = true,
-
+  showTextInput = false,
+  textInputPlaceholder = 'Enter text...',
+  textInputValue = '',
+  onTextChange,
 }: DialogProps) {
   const insets = useSafeAreaInsets();
   const [scaleAnim] = React.useState(new Animated.Value(0.8));
@@ -120,7 +128,7 @@ export default function Dialog({
       return (
         <TouchableOpacity
           style={[styles.action, getActionStyle(action.variant)]}
-          onPress={action.onPress}
+          onPress={() => action.onPress(textInputValue)}
         >
           <Text style={getActionTextStyle(action.variant)}>{action.label}</Text>
         </TouchableOpacity>
@@ -138,7 +146,7 @@ export default function Dialog({
               { flex: action.variant === 'primary' ? 2 : 1 },
               index > 0 && { marginLeft: 12 },
             ]}
-            onPress={action.onPress}
+            onPress={() => action.onPress(textInputValue)}
           >
             <Text style={getActionTextStyle(action.variant)}>{action.label}</Text>
           </TouchableOpacity>
@@ -197,6 +205,18 @@ export default function Dialog({
 
           <Text style={styles.title}>{title}</Text>
           <Text style={styles.message}>{message}</Text>
+
+          {showTextInput && (
+            <TextInput
+              style={styles.textInput}
+              placeholder={textInputPlaceholder}
+              placeholderTextColor={Colors.text.secondary}
+              value={textInputValue}
+              onChangeText={onTextChange}
+              autoFocus
+              returnKeyType="done"
+            />
+          )}
 
           <View style={styles.actionsContainer}>{renderActions()}</View>
         </Animated.View>
@@ -282,5 +302,17 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: Colors.text.primary,
+  },
+  textInput: {
+    width: '100%',
+    height: 44,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    fontSize: 16,
+    color: Colors.text.primary,
+    backgroundColor: Colors.surface,
+    marginBottom: 16,
   },
 });
