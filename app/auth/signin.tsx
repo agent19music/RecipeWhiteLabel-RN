@@ -5,27 +5,25 @@ import {
   StyleSheet,
   TextInput,
   TouchableOpacity,
-  Dimensions,
   Animated,
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  Alert,
+  ImageBackground,
+  Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { theme, useTheme } from '../../theme';
 import { useAuth } from '../../context/AuthContext';
 import * as Haptics from 'expo-haptics';
-import { Modal } from 'react-native';
 import Dialog from '@/components/Dialog';
 import { useDialog } from '@/hooks/useDialog';
 
-const { width, height } = Dimensions.get('window');
+// Removed unused Dimensions variables
 
 export default function SignInScreen() {
   const { palette } = useTheme();
@@ -79,6 +77,7 @@ export default function SignInScreen() {
         useNativeDriver: true,
       }),
     ]).start();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -86,13 +85,13 @@ export default function SignInScreen() {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       showErrorDialog('Error', error);
     }
-  }, [error]);
+  }, [error, showErrorDialog]);
 
   const handleGoogleSignIn = async () => {
     try {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       await signInWithGoogle();
-    } catch (err) {
+    } catch {
       // Error handled by context
     }
   };
@@ -130,7 +129,7 @@ export default function SignInScreen() {
       } else {
         await signInWithEmail(email, password);
       }
-    } catch (err) {
+    } catch {
       // Error handled by context
     }
   };
@@ -165,18 +164,25 @@ export default function SignInScreen() {
         'Reset Email Sent!',
         'Please check your email for password reset instructions.'
       );
-    } catch (err) {
+    } catch {
       // Error handled by context
     }
   };
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: palette.bg }]} edges={['top', 'bottom']}>
-      {/* Background Gradient */}
-      <LinearGradient
-        colors={[palette.primary + '10', palette.bg, palette.bg]}
+      {/* Background Image */}
+      <ImageBackground
+        source={require('../../assets/images/splash.png')}
         style={StyleSheet.absoluteFillObject}
-      />
+        resizeMode="cover"
+        blurRadius={2}
+      >
+        {/* Dark overlay for better readability */}
+        <View style={[styles.overlay, { backgroundColor: 'rgba(255	253	208)' }]} />
+        {/* Theme overlay for consistency */}
+        {/* <View style={[styles.overlay, { backgroundColor: palette.bg + '40' }]} /> */}
+      </ImageBackground>
 
       <KeyboardAvoidingView
         style={styles.keyboardView}
@@ -256,7 +262,7 @@ export default function SignInScreen() {
               {/* Full Name Input (Sign Up Only) */}
               {isSignUp && (
                 <View style={styles.inputContainer}>
-                  <View style={[styles.inputWrapper, { backgroundColor: palette.cardBg, borderColor: palette.border }]}>
+                  <View style={[styles.inputWrapper, { backgroundColor: palette.card, borderColor: palette.border }]}>
                     <Ionicons name="person-outline" size={20} color={palette.subtext} />
                     <TextInput
                       style={[styles.input, { color: palette.text }]}
@@ -273,7 +279,7 @@ export default function SignInScreen() {
 
               {/* Email Input */}
               <View style={styles.inputContainer}>
-                <View style={[styles.inputWrapper, { backgroundColor: palette.cardBg, borderColor: palette.border }]}>
+                <View style={[styles.inputWrapper, { backgroundColor: palette.card, borderColor: palette.border }]}>
                   <Ionicons name="mail-outline" size={20} color={palette.subtext} />
                   <TextInput
                     style={[styles.input, { color: palette.text }]}
@@ -291,7 +297,7 @@ export default function SignInScreen() {
 
               {/* Password Input */}
               <View style={styles.inputContainer}>
-                <View style={[styles.inputWrapper, { backgroundColor: palette.cardBg, borderColor: palette.border }]}>
+                <View style={[styles.inputWrapper, { backgroundColor: palette.card, borderColor: palette.border }]}>
                   <Ionicons name="lock-closed-outline" size={20} color={palette.subtext} />
                   <TextInput
                     style={[styles.input, { color: palette.text }]}
@@ -319,7 +325,7 @@ export default function SignInScreen() {
               {/* Confirm Password Input (Sign Up Only) */}
               {isSignUp && (
                 <View style={styles.inputContainer}>
-                  <View style={[styles.inputWrapper, { backgroundColor: palette.cardBg, borderColor: palette.border }]}>
+                  <View style={[styles.inputWrapper, { backgroundColor: palette.card, borderColor: palette.border }]}>
                     <Ionicons name="lock-closed-outline" size={20} color={palette.subtext} />
                     <TextInput
                       style={[styles.input, { color: palette.text }]}
@@ -416,12 +422,12 @@ export default function SignInScreen() {
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
             style={styles.modalKeyboardView}
           >
-            <View style={[styles.modalContainer, { backgroundColor: palette.cardBg }]}>
+            <View style={[styles.modalContainer, { backgroundColor: palette.card }]}>
               <Text style={[styles.modalTitle, { color: palette.text }]}>
                 Reset Password
               </Text>
               <Text style={[styles.modalSubtitle, { color: palette.subtext }]}>
-                Enter your email address and we'll send you instructions to reset your password.
+                Enter your email address and we&apos;ll send you instructions to reset your password.
               </Text>
               
               <View style={[styles.inputWrapper, { backgroundColor: palette.bg, borderColor: palette.border }]}>
@@ -485,6 +491,10 @@ export default function SignInScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    
   },
   keyboardView: {
     flex: 1,

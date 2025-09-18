@@ -4,7 +4,6 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  ScrollView,
   Animated,
 } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
@@ -74,13 +73,13 @@ export default function MealTypeSelector({ selected, onSelect }: MealTypeSelecto
     // Animate the selected chip
     Animated.sequence([
       Animated.timing(scaleAnims[mealId], {
-        toValue: 0.95,
-        duration: 100,
+        toValue: 0.96,
+        duration: 120,
         useNativeDriver: true,
       }),
       Animated.timing(scaleAnims[mealId], {
         toValue: 1,
-        duration: 100,
+        duration: 120,
         useNativeDriver: true,
       }),
     ]).start();
@@ -101,11 +100,11 @@ export default function MealTypeSelector({ selected, onSelect }: MealTypeSelecto
     if (!selected) {
       onSelect(getCurrentMealType());
     }
-  }, []);
+  }, [selected, onSelect]);
 
   const renderIcon = (meal: MealType, isSelected: boolean) => {
     const iconColor = isSelected ? Colors.white : meal.color;
-    const iconSize = 24;
+    const iconSize = 20;
 
     if (meal.iconType === 'material') {
       return (
@@ -128,11 +127,7 @@ export default function MealTypeSelector({ selected, onSelect }: MealTypeSelecto
 
   return (
     <View style={styles.container}>
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
-      >
+      <View style={styles.chipContainer}>
         {MEAL_TYPES.map((meal) => {
           const isSelected = selected === meal.id;
           const isRecommended = meal.id === getCurrentMealType();
@@ -147,14 +142,18 @@ export default function MealTypeSelector({ selected, onSelect }: MealTypeSelecto
               <TouchableOpacity
                 style={[
                   styles.chip,
-                  isSelected && styles.chipSelected,
-                  isSelected && { backgroundColor: meal.color },
+                  isSelected && [styles.chipSelected, { backgroundColor: meal.color }],
                 ]}
                 onPress={() => handleSelect(meal.id)}
                 activeOpacity={0.8}
               >
                 <View style={styles.chipContent}>
-                  {renderIcon(meal, isSelected)}
+                  <View style={[
+                    styles.iconContainer,
+                    isSelected && styles.iconContainerSelected
+                  ]}>
+                    {renderIcon(meal, isSelected)}
+                  </View>
                   <View style={styles.chipTextContainer}>
                     <Text
                       style={[
@@ -175,7 +174,7 @@ export default function MealTypeSelector({ selected, onSelect }: MealTypeSelecto
                   </View>
                   {isRecommended && !isSelected && (
                     <View style={styles.recommendedBadge}>
-                      <Text style={styles.recommendedText}>Now</Text>
+                      <Text style={styles.recommendedText}>•</Text>
                     </View>
                   )}
                 </View>
@@ -183,14 +182,6 @@ export default function MealTypeSelector({ selected, onSelect }: MealTypeSelecto
             </Animated.View>
           );
         })}
-      </ScrollView>
-
-      {/* Current Selection Display */}
-      <View style={styles.selectionDisplay}>
-        <Text style={styles.selectionLabel}>Selected:</Text>
-        <Text style={styles.selectionValue}>
-          {MEAL_TYPES.find(m => m.id === selected)?.name || 'None'}
-        </Text>
       </View>
     </View>
   );
@@ -198,38 +189,59 @@ export default function MealTypeSelector({ selected, onSelect }: MealTypeSelecto
 
 const styles = StyleSheet.create({
   container: {
-    gap: 16,
+    marginTop: 4,
   },
-  scrollContent: {
-    paddingHorizontal: 4,
-    gap: 12,
+  chipContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
   },
   chip: {
-    backgroundColor: Colors.white,
-    borderRadius: 16,
+    backgroundColor: Colors.surface,
+    borderRadius: 12,
     paddingVertical: 12,
     paddingHorizontal: 16,
-    marginRight: 12,
-    borderWidth: 2,
+    borderWidth: 1.5,
     borderColor: Colors.border,
-    minWidth: 120,
+    flex: 1,
+    minWidth: '47%',
   },
   chipSelected: {
     borderColor: 'transparent',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   chipContent: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
   },
+  iconContainer: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    backgroundColor: Colors.white,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  iconContainerSelected: {
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+  },
   chipTextContainer: {
     flex: 1,
   },
   chipName: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '600',
     color: Colors.text.primary,
     marginBottom: 2,
+    letterSpacing: -0.2,
   },
   chipNameSelected: {
     color: Colors.white,
@@ -237,35 +249,22 @@ const styles = StyleSheet.create({
   chipTime: {
     fontSize: 12,
     color: Colors.text.secondary,
+    fontWeight: '500',
   },
   chipTimeSelected: {
     color: Colors.white,
-    opacity: 0.9,
+    opacity: 0.8,
   },
   recommendedBadge: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
     backgroundColor: Colors.success,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 10,
   },
   recommendedText: {
-    fontSize: 10,
+    fontSize: 8,
     fontWeight: '600',
     color: Colors.white,
-  },
-  selectionDisplay: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    paddingHorizontal: 4,
-  },
-  selectionLabel: {
-    fontSize: 14,
-    color: Colors.text.secondary,
-  },
-  selectionValue: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: Colors.primary,
+    textAlign: 'center',
   },
 });

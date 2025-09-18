@@ -6,7 +6,6 @@ import {
   ScrollView,
   TouchableOpacity,
   Animated,
-  Dimensions,
   KeyboardAvoidingView,
   Platform,
   Alert,
@@ -17,11 +16,10 @@ import { useRouter } from 'expo-router';
 import { Colors } from '@/constants/Colors';
 import PhotoCapture from '@/components/FoodLogger/PhotoCapture';
 import ManualFoodInput from '@/components/FoodLogger/ManualFoodInput';
-import WaterIntakeTracker from '@/components/FoodLogger/WaterIntakeTracker';
+import WaterIntakeTracker from '@/components/FoodLogger/WaterIntakeTracker'; // Use the updated WaterIntakeTracker
+// import WaterIntakeTracker from '@/components/FoodLogger/WaterIntakeTracker';
 import MealTypeSelector from '@/components/FoodLogger/MealTypeSelector';
 import * as HapticUtils from '@/utils/haptics';
-
-const { width } = Dimensions.get('window');
 
 interface FoodItem {
   id: string;
@@ -49,7 +47,7 @@ export default function FoodLoggerScreen() {
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 1,
-        duration: 300,
+        duration: 600,
         useNativeDriver: true,
       }),
       Animated.spring(slideAnim, {
@@ -59,7 +57,7 @@ export default function FoodLoggerScreen() {
         useNativeDriver: true,
       }),
     ]).start();
-  }, []);
+  }, [fadeAnim, slideAnim]);
 
   const handleSave = async () => {
     await HapticUtils.hapticImpact(HapticUtils.ImpactFeedbackStyle.Medium);
@@ -94,11 +92,6 @@ export default function FoodLoggerScreen() {
     router.back();
   };
 
-  const toggleInputMode = async () => {
-    await HapticUtils.hapticImpact(HapticUtils.ImpactFeedbackStyle.Light);
-    setInputMode(inputMode === 'photo' ? 'manual' : 'photo');
-  };
-
   const handleAddFoodItem = (item: FoodItem) => {
     setFoodItems([...foodItems, item]);
   };
@@ -114,6 +107,7 @@ export default function FoodLoggerScreen() {
         style={styles.keyboardView}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
+        {/* Modern Header */}
         <Animated.View 
           style={[
             styles.header,
@@ -123,14 +117,25 @@ export default function FoodLoggerScreen() {
             }
           ]}
         >
-          <Text style={styles.title}>Log Your Meal</Text>
-          <TouchableOpacity 
-            style={styles.closeButton}
-            onPress={handleCancel}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          >
-            <Ionicons name="close" size={28} color={Colors.text.primary} />
-          </TouchableOpacity>
+          <View style={styles.headerContent}>
+            <TouchableOpacity 
+              style={styles.closeButton}
+              onPress={handleCancel}
+              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+            >
+              <View style={styles.closeButtonBackground}>
+                <Ionicons name="close" size={20} color={Colors.text.secondary} />
+              </View>
+            </TouchableOpacity>
+            
+            <View style={styles.headerTitleContainer}>
+              <Text style={styles.title}>Log Your Meal</Text>
+              <Text style={styles.subtitle}>Track what you eat today</Text>
+            </View>
+            
+            {/* Invisible spacer for layout balance */}
+            <View style={styles.closeButton} />
+          </View>
         </Animated.View>
 
         <ScrollView 
@@ -138,78 +143,122 @@ export default function FoodLoggerScreen() {
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
         >
-          {/* Meal Type Selector */}
+          {/* Meal Type Card */}
           <Animated.View 
             style={[
-              styles.section,
+              styles.card,
               {
                 opacity: fadeAnim,
                 transform: [{ translateY: slideAnim }],
               }
             ]}
           >
-            <Text style={styles.sectionTitle}>Meal Type</Text>
+            <View style={styles.cardHeader}>
+              <View style={styles.cardIconContainer}>
+                <Ionicons name="time-outline" size={18} color={Colors.primary} />
+              </View>
+              <Text style={styles.cardTitle}>Meal Type</Text>
+            </View>
             <MealTypeSelector
               selected={selectedMealType}
               onSelect={setSelectedMealType}
             />
           </Animated.View>
 
-          {/* Food Input Section */}
+          {/* Food Input Card */}
           <Animated.View 
             style={[
-              styles.section,
+              styles.card,
               {
                 opacity: fadeAnim,
                 transform: [{ translateY: slideAnim }],
               }
             ]}
           >
-            <Text style={styles.sectionTitle}>Food</Text>
+            <View style={styles.cardHeader}>
+              <View style={styles.cardIconContainer}>
+                <Ionicons name="restaurant-outline" size={18} color={Colors.primary} />
+              </View>
+              <Text style={styles.cardTitle}>What did you eat?</Text>
+            </View>
             
-            {inputMode === 'photo' ? (
-              <>
+            {/* Input Mode Toggle */}
+            <View style={styles.toggleContainer}>
+              <TouchableOpacity 
+                style={[
+                  styles.toggleOption,
+                  inputMode === 'photo' && styles.toggleOptionActive
+                ]}
+                onPress={() => setInputMode('photo')}
+              >
+                <Ionicons 
+                  name="camera-outline" 
+                  size={16} 
+                  color={inputMode === 'photo' ? Colors.white : Colors.text.secondary} 
+                />
+                <Text style={[
+                  styles.toggleText,
+                  inputMode === 'photo' && styles.toggleTextActive
+                ]}>
+                  Photo
+                </Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={[
+                  styles.toggleOption,
+                  inputMode === 'manual' && styles.toggleOptionActive
+                ]}
+                onPress={() => setInputMode('manual')}
+              >
+                <Ionicons 
+                  name="create-outline" 
+                  size={16} 
+                  color={inputMode === 'manual' ? Colors.white : Colors.text.secondary} 
+                />
+                <Text style={[
+                  styles.toggleText,
+                  inputMode === 'manual' && styles.toggleTextActive
+                ]}>
+                  Manual
+                </Text>
+              </TouchableOpacity>
+            </View>
+            
+            {/* Input Content */}
+            <View style={styles.inputContent}>
+              {inputMode === 'photo' ? (
                 <PhotoCapture
                   photo={capturedPhoto}
                   onPhotoCapture={setCapturedPhoto}
                 />
-                <TouchableOpacity 
-                  style={styles.toggleButton}
-                  onPress={toggleInputMode}
-                >
-                  <Text style={styles.toggleText}>Or enter manually</Text>
-                  <Ionicons name="pencil" size={18} color={Colors.primary} />
-                </TouchableOpacity>
-              </>
-            ) : (
-              <>
+              ) : (
                 <ManualFoodInput
                   foodItems={foodItems}
                   onAddItem={handleAddFoodItem}
                   onRemoveItem={handleRemoveFoodItem}
                 />
-                <TouchableOpacity 
-                  style={styles.toggleButton}
-                  onPress={toggleInputMode}
-                >
-                  <Text style={styles.toggleText}>Use camera instead</Text>
-                  <Ionicons name="camera" size={18} color={Colors.primary} />
-                </TouchableOpacity>
-              </>
-            )}
+              )}
+            </View>
           </Animated.View>
 
-          {/* Water Intake Section */}
+          {/* Water Intake Card */}
           <Animated.View 
             style={[
-              styles.section,
+              styles.card,
               {
                 opacity: fadeAnim,
                 transform: [{ translateY: slideAnim }],
               }
             ]}
           >
-            <Text style={styles.sectionTitle}>Water Intake</Text>
+            <View style={styles.cardHeader}>
+              <View style={styles.cardIconContainer}>
+                <Ionicons name="water-outline" size={18} color={Colors.primary} />
+              </View>
+              <Text style={styles.cardTitle}>Water Intake</Text>
+              <Text style={styles.cardSubtitle}>Stay hydrated</Text>
+            </View>
             <WaterIntakeTracker
               glasses={waterGlasses}
               onGlassesChange={setWaterGlasses}
@@ -217,7 +266,7 @@ export default function FoodLoggerScreen() {
           </Animated.View>
         </ScrollView>
 
-        {/* Action Buttons */}
+        {/* Modern Action Buttons */}
         <Animated.View 
           style={[
             styles.actionContainer,
@@ -227,18 +276,24 @@ export default function FoodLoggerScreen() {
             }
           ]}
         >
-          <TouchableOpacity 
-            style={styles.cancelButton}
-            onPress={handleCancel}
-          >
-            <Text style={styles.cancelButtonText}>Cancel</Text>
-          </TouchableOpacity>
-          <TouchableOpacity 
-            style={styles.saveButton}
-            onPress={handleSave}
-          >
-            <Text style={styles.saveButtonText}>Save Meal</Text>
-          </TouchableOpacity>
+          <View style={styles.actionButtons}>
+            <TouchableOpacity 
+              style={styles.cancelButton}
+              onPress={handleCancel}
+            >
+              <Text style={styles.cancelButtonText}>Cancel</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={styles.saveButton}
+              onPress={handleSave}
+            >
+              <View style={styles.saveButtonContent}>
+                <Ionicons name="checkmark" size={20} color={Colors.white} />
+                <Text style={styles.saveButtonText}>Save Meal</Text>
+              </View>
+            </TouchableOpacity>
+          </View>
         </Animated.View>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -254,73 +309,150 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: Colors.white,
     paddingHorizontal: 20,
     paddingVertical: 16,
-    borderBottomWidth: 1,
+    borderBottomWidth: 0.5,
     borderBottomColor: Colors.border,
   },
-  title: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: Colors.text.primary,
+  headerContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
-  closeButton: {
-    position: 'absolute',
-    right: 20,
-    padding: 4,
-  },
-  scrollView: {
+  headerTitleContainer: {
+    alignItems: 'center',
     flex: 1,
   },
-  scrollContent: {
-    paddingBottom: 100,
-  },
-  section: {
-    paddingHorizontal: 20,
-    paddingVertical: 24,
-  },
-  sectionTitle: {
+  title: {
     fontSize: 18,
     fontWeight: '600',
     color: Colors.text.primary,
+    letterSpacing: -0.3,
+  },
+  subtitle: {
+    fontSize: 13,
+    color: Colors.text.secondary,
+    marginTop: 2,
+    fontWeight: '400',
+  },
+  closeButton: {
+    width: 32,
+    height: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  closeButtonBackground: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: Colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  scrollView: {
+    flex: 1,
+    backgroundColor: Colors.surface,
+  },
+  scrollContent: {
+    paddingVertical: 16,
+    paddingBottom: 120,
+  },
+  card: {
+    backgroundColor: Colors.white,
+    marginHorizontal: 16,
+    marginBottom: 16,
+    borderRadius: 16,
+    padding: 20,
+    shadowColor: Colors.black,
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
     marginBottom: 16,
   },
-  toggleButton: {
+  cardIconContainer: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    backgroundColor: Colors.primaryMuted,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  cardTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: Colors.text.primary,
+    flex: 1,
+    letterSpacing: -0.2,
+  },
+  cardSubtitle: {
+    fontSize: 13,
+    color: Colors.text.secondary,
+    marginLeft: 'auto',
+  },
+  toggleContainer: {
+    flexDirection: 'row',
+    backgroundColor: Colors.surface,
+    borderRadius: 12,
+    padding: 4,
+    marginBottom: 20,
+  },
+  toggleOption: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 12,
-    marginTop: 16,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    gap: 6,
+  },
+  toggleOptionActive: {
+    backgroundColor: Colors.primary,
   },
   toggleText: {
-    fontSize: 15,
-    color: Colors.primary,
+    fontSize: 14,
     fontWeight: '500',
+    color: Colors.text.secondary,
+  },
+  toggleTextActive: {
+    color: Colors.white,
+  },
+  inputContent: {
+    marginTop: 4,
   },
   actionContainer: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
+    backgroundColor: Colors.white,
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: Platform.OS === 'ios' ? 34 : 20,
+    borderTopWidth: 0.5,
+    borderTopColor: Colors.border,
+  },
+  actionButtons: {
     flexDirection: 'row',
     gap: 12,
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: Colors.background,
-    borderTopWidth: 1,
-    borderTopColor: Colors.border,
-    paddingBottom: Platform.OS === 'ios' ? 32 : 16,
   },
   cancelButton: {
     flex: 1,
     paddingVertical: 16,
     borderRadius: 12,
-    backgroundColor: Colors.gray[100],
+    backgroundColor: Colors.surface,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   cancelButtonText: {
     fontSize: 16,
@@ -333,10 +465,25 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     backgroundColor: Colors.primary,
     alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: Colors.primary,
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  saveButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   saveButtonText: {
     fontSize: 16,
     fontWeight: '600',
     color: Colors.white,
+    letterSpacing: -0.2,
   },
 });

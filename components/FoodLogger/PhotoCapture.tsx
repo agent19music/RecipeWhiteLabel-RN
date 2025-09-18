@@ -15,11 +15,8 @@ import * as ImagePicker from 'expo-image-picker';
 import * as Haptics from 'expo-haptics';
 import { Colors } from '@/constants/Colors';
 
-// Conditionally import Camera only for native platforms
+// Camera will be null on web, handled gracefully in the component
 let Camera: any = null;
-if (Platform.OS !== 'web') {
-  Camera = require('expo-camera').Camera;
-}
 
 const { width } = Dimensions.get('window');
 
@@ -32,7 +29,7 @@ export default function PhotoCapture({ photo, onPhotoCapture }: PhotoCaptureProp
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [showCamera, setShowCamera] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
-  const cameraRef = useRef<Camera>(null);
+  const cameraRef = useRef<any>(null);
   const scaleAnim = useRef(new Animated.Value(1)).current;
 
   React.useEffect(() => {
@@ -174,11 +171,15 @@ export default function PhotoCapture({ photo, onPhotoCapture }: PhotoCaptureProp
       <View style={styles.previewContainer}>
         <Image source={{ uri: photo }} style={styles.preview} />
         <View style={styles.previewOverlay}>
+          <View style={styles.previewInfo}>
+            <Ionicons name="checkmark-circle" size={24} color={Colors.success} />
+            <Text style={styles.previewText}>Photo captured</Text>
+          </View>
           <TouchableOpacity
             style={styles.retakeButton}
             onPress={handleRetake}
           >
-            <Ionicons name="refresh" size={20} color={Colors.white} />
+            <Ionicons name="refresh-outline" size={16} color={Colors.primary} />
             <Text style={styles.retakeText}>Retake</Text>
           </TouchableOpacity>
         </View>
@@ -194,10 +195,15 @@ export default function PhotoCapture({ photo, onPhotoCapture }: PhotoCaptureProp
         activeOpacity={0.9}
       >
         <View style={styles.iconContainer}>
-          <Ionicons name="camera" size={48} color={Colors.primary} />
+          <Ionicons name="camera-outline" size={32} color={Colors.primary} />
         </View>
-        <Text style={styles.captureTitle}>Take Photo</Text>
-        <Text style={styles.captureHint}>Point camera at your meal</Text>
+        <View style={styles.textContainer}>
+          <Text style={styles.captureTitle}>Add Photo</Text>
+          <Text style={styles.captureHint}>Take a photo of your meal</Text>
+        </View>
+        <View style={styles.arrow}>
+          <Ionicons name="chevron-forward" size={16} color={Colors.text.tertiary} />
+        </View>
       </TouchableOpacity>
     </Animated.View>
   );
@@ -206,31 +212,41 @@ export default function PhotoCapture({ photo, onPhotoCapture }: PhotoCaptureProp
 const styles = StyleSheet.create({
   captureContainer: {
     backgroundColor: Colors.surface,
-    borderRadius: 16,
-    padding: 32,
+    borderRadius: 12,
+    padding: 16,
+    flexDirection: 'row',
     alignItems: 'center',
-    borderWidth: 2,
+    borderWidth: 1,
     borderColor: Colors.border,
-    borderStyle: 'dashed',
   },
   iconContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: 40,
+    height: 40,
+    borderRadius: 8,
     backgroundColor: Colors.primaryMuted,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 16,
+    marginRight: 12,
+  },
+  textContainer: {
+    flex: 1,
   },
   captureTitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '600',
     color: Colors.text.primary,
-    marginBottom: 8,
+    marginBottom: 2,
+    letterSpacing: -0.2,
   },
   captureHint: {
     fontSize: 14,
     color: Colors.text.secondary,
+  },
+  arrow: {
+    width: 24,
+    height: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   cameraContainer: {
     width: width - 40,
@@ -327,31 +343,53 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.primary,
   },
   previewContainer: {
-    width: width - 40,
-    height: (width - 40) * 3/4,
-    borderRadius: 16,
+    borderRadius: 12,
     overflow: 'hidden',
+    backgroundColor: Colors.surface,
+    borderWidth: 1,
+    borderColor: Colors.border,
   },
   preview: {
     width: '100%',
-    height: '100%',
+    height: 200,
+    backgroundColor: Colors.surface,
   },
   previewOverlay: {
     position: 'absolute',
-    top: 16,
-    right: 16,
+    top: 12,
+    left: 12,
+    right: 12,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  previewInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+  },
+  previewText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: Colors.text.primary,
   },
   retakeButton: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    backgroundColor: Colors.white,
     paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingVertical: 6,
     borderRadius: 20,
+    borderWidth: 1,
+    borderColor: Colors.border,
   },
   retakeText: {
-    color: Colors.white,
+    color: Colors.primary,
     fontSize: 14,
     fontWeight: '500',
   },

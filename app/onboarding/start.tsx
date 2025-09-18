@@ -1,7 +1,7 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useRef } from 'react';
-import { Animated, Dimensions, StyleSheet, Text, View } from 'react-native';
+import { Animated, Dimensions, StyleSheet, Text, View, ImageBackground } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AppleProgressIndicator from '../../components/AppleProgressIndicator';
 import ModernButton from '../../components/ModernButton';
@@ -12,7 +12,7 @@ import { track } from '../../utils/analytics';
 
 
 
-const { width, height } = Dimensions.get('window');
+// Removed unused Dimensions variables
 
 export default function OnboardingStart(){
   const { palette } = useTheme();
@@ -63,6 +63,19 @@ export default function OnboardingStart(){
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: palette.bg }]} edges={['top', 'bottom']}>
+      {/* Background Image */}
+      <ImageBackground
+        source={require('../../assets/images/splash.png')}
+        style={StyleSheet.absoluteFillObject}
+        resizeMode="cover"
+        blurRadius={8}
+      >
+        {/* Dark overlay for better readability */}
+        <View style={[styles.overlay, { backgroundColor: 'rgba(0, 0, 0, 0.7)' }]} />
+        {/* Theme overlay for consistency */}
+        <View style={[styles.overlay, { backgroundColor: palette.bg + '40' }]} />
+      </ImageBackground>
+      
       <View style={styles.content}>
         {/* Main Content */}
         <Animated.View 
@@ -167,6 +180,9 @@ export default function OnboardingStart(){
 const styles = StyleSheet.create({
   container: { 
     flex: 1,
+  },
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
   },
   content: {
     flex: 1,

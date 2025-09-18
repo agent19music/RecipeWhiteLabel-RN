@@ -6,7 +6,6 @@ import {
   TextInput,
   TouchableOpacity,
   ScrollView,
-  Animated,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
@@ -29,21 +28,16 @@ interface ManualFoodInputProps {
   onRemoveItem: (id: string) => void;
 }
 
-const PORTION_UNITS = ['cups', 'pieces', 'grams', 'oz', 'tbsp', 'tsp', 'serving'];
+const PORTION_UNITS = ['serving', 'cup', 'piece', 'gram', 'oz', 'tbsp', 'tsp'];
 
-export default function ManualFoodInput({ 
-  foodItems, 
-  onAddItem, 
-  onRemoveItem 
+export default function ManualFoodInput({
+  foodItems,
+  onAddItem,
+  onRemoveItem
 }: ManualFoodInputProps) {
   const [foodName, setFoodName] = useState('');
   const [portion, setPortion] = useState('');
   const [unit, setUnit] = useState('serving');
-  const [calories, setCalories] = useState('');
-  const [protein, setProtein] = useState('');
-  const [carbs, setCarbs] = useState('');
-  const [fat, setFat] = useState('');
-  const [showNutrition, setShowNutrition] = useState(false);
 
   const handleAddFood = async () => {
     if (!foodName.trim() || !portion.trim()) {
@@ -58,10 +52,6 @@ export default function ManualFoodInput({
       name: foodName.trim(),
       portion: portion.trim(),
       unit,
-      calories: calories ? parseFloat(calories) : undefined,
-      protein: protein ? parseFloat(protein) : undefined,
-      carbs: carbs ? parseFloat(carbs) : undefined,
-      fat: fat ? parseFloat(fat) : undefined,
     };
 
     onAddItem(newItem);
@@ -70,111 +60,69 @@ export default function ManualFoodInput({
     setFoodName('');
     setPortion('');
     setUnit('serving');
-    setCalories('');
-    setProtein('');
-    setCarbs('');
-    setFat('');
-    setShowNutrition(false);
 
     await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
   };
 
-  const toggleNutrition = async () => {
+  const handleRemoveFood = async (id: string) => {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setShowNutrition(!showNutrition);
+    onRemoveItem(id);
   };
+
+  const canAddFood = foodName.trim() && portion.trim();
 
   return (
     <View style={styles.container}>
-      {/* Food Items List */}
-      {foodItems.length > 0 && (
-        <View style={styles.itemsList}>
-          <Text style={styles.itemsTitle}>Added Foods</Text>
-          {foodItems.map((item, index) => (
-            <Animated.View 
-              key={item.id} 
-              style={[
-                styles.foodItem,
-                { 
-                  opacity: new Animated.Value(1),
-                  transform: [{ scale: new Animated.Value(1) }]
-                }
-              ]}
-            >
-              <View style={styles.foodItemContent}>
-                <Text style={styles.foodItemName}>{item.name}</Text>
-                <Text style={styles.foodItemPortion}>
-                  {item.portion} {item.unit}
-                </Text>
-                {item.calories && (
-                  <Text style={styles.foodItemCalories}>{item.calories} cal</Text>
-                )}
-              </View>
-              <TouchableOpacity
-                style={styles.removeButton}
-                onPress={() => onRemoveItem(item.id)}
-                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-              >
-                <Ionicons name="close-circle" size={24} color={Colors.error} />
-              </TouchableOpacity>
-            </Animated.View>
-          ))}
-        </View>
-      )}
-
-      {/* Input Form */}
-      <View style={styles.inputForm}>
-        <Text style={styles.formTitle}>Add Food Item</Text>
-        
-        {/* Food Name */}
+      {/* Add Food Form */}
+      <View style={styles.formCard}>
         <View style={styles.inputGroup}>
-          <Text style={styles.inputLabel}>Food Name *</Text>
+          <Text style={styles.inputLabel}>Food Item</Text>
           <TextInput
             style={styles.input}
-            placeholder="e.g., Grilled Chicken"
-            placeholderTextColor={Colors.gray[400]}
+            placeholder="e.g., Grilled chicken"
+            placeholderTextColor={Colors.text.tertiary}
             value={foodName}
             onChangeText={setFoodName}
             returnKeyType="next"
           />
         </View>
 
-        {/* Portion Size */}
         <View style={styles.rowInputs}>
           <View style={[styles.inputGroup, { flex: 1 }]}>
-            <Text style={styles.inputLabel}>Portion *</Text>
+            <Text style={styles.inputLabel}>Amount</Text>
             <TextInput
               style={styles.input}
               placeholder="1"
-              placeholderTextColor={Colors.gray[400]}
+              placeholderTextColor={Colors.text.tertiary}
               value={portion}
               onChangeText={setPortion}
               keyboardType="numeric"
-              returnKeyType="next"
+              returnKeyType="done"
             />
           </View>
-          
-          <View style={[styles.inputGroup, { flex: 1.5 }]}>
+
+          <View style={[styles.inputGroup, { flex: 1.2 }]}>
             <Text style={styles.inputLabel}>Unit</Text>
-            <ScrollView 
-              horizontal 
+            <ScrollView
+              horizontal
               showsHorizontalScrollIndicator={false}
-              style={styles.unitsScroll}
+              style={styles.unitSelector}
+              contentContainerStyle={styles.unitSelectorContent}
             >
-              {PORTION_UNITS.map((u) => (
+              {PORTION_UNITS.map((unitOption) => (
                 <TouchableOpacity
-                  key={u}
+                  key={unitOption}
                   style={[
                     styles.unitChip,
-                    unit === u && styles.unitChipActive
+                    unit === unitOption && styles.unitChipActive
                   ]}
-                  onPress={() => setUnit(u)}
+                  onPress={() => setUnit(unitOption)}
                 >
                   <Text style={[
                     styles.unitChipText,
-                    unit === u && styles.unitChipTextActive
+                    unit === unitOption && styles.unitChipTextActive
                   ]}>
-                    {u}
+                    {unitOption}
                   </Text>
                 </TouchableOpacity>
               ))}
@@ -182,158 +130,79 @@ export default function ManualFoodInput({
           </View>
         </View>
 
-        {/* Nutrition Toggle */}
-        <TouchableOpacity 
-          style={styles.nutritionToggle}
-          onPress={toggleNutrition}
-        >
-          <Text style={styles.nutritionToggleText}>
-            Add Nutrition Info (Optional)
-          </Text>
-          <Ionicons 
-            name={showNutrition ? "chevron-up" : "chevron-down"} 
-            size={20} 
-            color={Colors.primary} 
-          />
-        </TouchableOpacity>
-
-        {/* Nutrition Fields */}
-        {showNutrition && (
-          <View style={styles.nutritionFields}>
-            <View style={styles.nutritionRow}>
-              <View style={styles.nutritionInput}>
-                <Text style={styles.nutritionLabel}>Calories</Text>
-                <TextInput
-                  style={styles.nutritionField}
-                  placeholder="0"
-                  placeholderTextColor={Colors.gray[400]}
-                  value={calories}
-                  onChangeText={setCalories}
-                  keyboardType="numeric"
-                />
-              </View>
-              
-              <View style={styles.nutritionInput}>
-                <Text style={styles.nutritionLabel}>Protein (g)</Text>
-                <TextInput
-                  style={styles.nutritionField}
-                  placeholder="0"
-                  placeholderTextColor={Colors.gray[400]}
-                  value={protein}
-                  onChangeText={setProtein}
-                  keyboardType="numeric"
-                />
-              </View>
-            </View>
-            
-            <View style={styles.nutritionRow}>
-              <View style={styles.nutritionInput}>
-                <Text style={styles.nutritionLabel}>Carbs (g)</Text>
-                <TextInput
-                  style={styles.nutritionField}
-                  placeholder="0"
-                  placeholderTextColor={Colors.gray[400]}
-                  value={carbs}
-                  onChangeText={setCarbs}
-                  keyboardType="numeric"
-                />
-              </View>
-              
-              <View style={styles.nutritionInput}>
-                <Text style={styles.nutritionLabel}>Fat (g)</Text>
-                <TextInput
-                  style={styles.nutritionField}
-                  placeholder="0"
-                  placeholderTextColor={Colors.gray[400]}
-                  value={fat}
-                  onChangeText={setFat}
-                  keyboardType="numeric"
-                />
-              </View>
-            </View>
-          </View>
-        )}
-
-        {/* Add Button */}
-        <TouchableOpacity 
-          style={styles.addButton}
+        <TouchableOpacity
+          style={[styles.addButton, !canAddFood && styles.addButtonDisabled]}
           onPress={handleAddFood}
+          disabled={!canAddFood}
         >
-          <Ionicons name="add-circle" size={20} color={Colors.white} />
-          <Text style={styles.addButtonText}>Add Food Item</Text>
+          <Ionicons 
+            name="add" 
+            size={20} 
+            color={canAddFood ? Colors.white : Colors.text.tertiary} 
+          />
+          <Text style={[
+            styles.addButtonText,
+            !canAddFood && styles.addButtonTextDisabled
+          ]}>
+            Add Food
+          </Text>
         </TouchableOpacity>
       </View>
+
+      {/* Food Items List */}
+      {foodItems.length > 0 && (
+        <View style={styles.listCard}>
+          <Text style={styles.listTitle}>Added Foods</Text>
+          {foodItems.map((item) => (
+            <View key={item.id} style={styles.foodItem}>
+              <View style={styles.foodInfo}>
+                <Text style={styles.foodName}>{item.name}</Text>
+                <Text style={styles.foodPortion}>
+                  {item.portion} {item.unit}
+                </Text>
+              </View>
+              <TouchableOpacity
+                style={styles.removeButton}
+                onPress={() => handleRemoveFood(item.id)}
+              >
+                <Ionicons name="close" size={16} color={Colors.text.secondary} />
+              </TouchableOpacity>
+            </View>
+          ))}
+        </View>
+      )}
+
+      {/* Empty State */}
+      {foodItems.length === 0 && (
+        <View style={styles.emptyState}>
+          <Ionicons name="restaurant-outline" size={32} color={Colors.text.tertiary} />
+          <Text style={styles.emptyStateText}>No foods added yet</Text>
+          <Text style={styles.emptyStateSubtext}>Add foods manually using the form above</Text>
+        </View>
+      )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    gap: 20,
+    marginTop: 4,
   },
-  itemsList: {
+  formCard: {
     backgroundColor: Colors.surface,
     borderRadius: 12,
     padding: 16,
-  },
-  itemsTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: Colors.text.secondary,
-    marginBottom: 12,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  foodItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
-  },
-  foodItemContent: {
-    flex: 1,
-  },
-  foodItemName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: Colors.text.primary,
-    marginBottom: 4,
-  },
-  foodItemPortion: {
-    fontSize: 14,
-    color: Colors.text.secondary,
-  },
-  foodItemCalories: {
-    fontSize: 12,
-    color: Colors.primary,
-    marginTop: 2,
-  },
-  removeButton: {
-    padding: 4,
-  },
-  inputForm: {
-    backgroundColor: Colors.surface,
-    borderRadius: 12,
-    padding: 16,
-  },
-  formTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: Colors.text.secondary,
     marginBottom: 16,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
   },
   inputGroup: {
     marginBottom: 16,
   },
   inputLabel: {
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: '600',
     color: Colors.text.primary,
-    marginBottom: 8,
+    marginBottom: 6,
+    letterSpacing: -0.1,
   },
   input: {
     backgroundColor: Colors.white,
@@ -341,24 +210,28 @@ const styles = StyleSheet.create({
     borderColor: Colors.border,
     borderRadius: 8,
     paddingHorizontal: 12,
-    paddingVertical: 12,
+    paddingVertical: 10,
     fontSize: 16,
     color: Colors.text.primary,
   },
   rowInputs: {
     flexDirection: 'row',
     gap: 12,
+    marginBottom: 16,
   },
-  unitsScroll: {
-    flexGrow: 0,
+  unitSelector: {
+    maxHeight: 42,
+  },
+  unitSelectorContent: {
+    paddingRight: 16,
   },
   unitChip: {
     paddingHorizontal: 12,
     paddingVertical: 8,
-    borderRadius: 16,
     backgroundColor: Colors.white,
     borderWidth: 1,
     borderColor: Colors.border,
+    borderRadius: 6,
     marginRight: 8,
   },
   unitChipActive: {
@@ -368,49 +241,10 @@ const styles = StyleSheet.create({
   unitChipText: {
     fontSize: 14,
     color: Colors.text.secondary,
+    fontWeight: '500',
   },
   unitChipTextActive: {
     color: Colors.white,
-    fontWeight: '500',
-  },
-  nutritionToggle: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 12,
-    marginBottom: 8,
-  },
-  nutritionToggleText: {
-    fontSize: 15,
-    color: Colors.primary,
-    fontWeight: '500',
-  },
-  nutritionFields: {
-    marginBottom: 16,
-  },
-  nutritionRow: {
-    flexDirection: 'row',
-    gap: 12,
-    marginBottom: 12,
-  },
-  nutritionInput: {
-    flex: 1,
-  },
-  nutritionLabel: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: Colors.text.secondary,
-    marginBottom: 6,
-  },
-  nutritionField: {
-    backgroundColor: Colors.white,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 14,
-    color: Colors.text.primary,
   },
   addButton: {
     flexDirection: 'row',
@@ -418,13 +252,83 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 8,
     backgroundColor: Colors.primary,
-    paddingVertical: 14,
+    paddingVertical: 12,
     borderRadius: 8,
-    marginTop: 8,
+  },
+  addButtonDisabled: {
+    backgroundColor: Colors.surface,
   },
   addButtonText: {
     fontSize: 16,
     fontWeight: '600',
     color: Colors.white,
+    letterSpacing: -0.2,
+  },
+  addButtonTextDisabled: {
+    color: Colors.text.tertiary,
+  },
+  listCard: {
+    backgroundColor: Colors.white,
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    marginBottom: 16,
+  },
+  listTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: Colors.text.primary,
+    marginBottom: 12,
+    letterSpacing: -0.2,
+  },
+  foodItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.surface,
+  },
+  foodInfo: {
+    flex: 1,
+  },
+  foodName: {
+    fontSize: 15,
+    fontWeight: '500',
+    color: Colors.text.primary,
+    marginBottom: 2,
+    letterSpacing: -0.1,
+  },
+  foodPortion: {
+    fontSize: 13,
+    color: Colors.text.secondary,
+  },
+  removeButton: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: Colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyState: {
+    alignItems: 'center',
+    paddingVertical: 32,
+    backgroundColor: Colors.surface,
+    borderRadius: 12,
+    marginBottom: 16,
+  },
+  emptyStateText: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: Colors.text.secondary,
+    marginTop: 12,
+    letterSpacing: -0.1,
+  },
+  emptyStateSubtext: {
+    fontSize: 14,
+    color: Colors.text.tertiary,
+    marginTop: 4,
+    textAlign: 'center',
   },
 });
