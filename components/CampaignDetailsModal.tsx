@@ -183,7 +183,7 @@ export default function CampaignDetailsModal({
               <View style={styles.statDivider} />
               <View style={styles.statBox}>
                 <Ionicons name="trophy" size={20} color={Colors.primary} />
-                <Text style={[styles.statNumber, { color: Colors.primary }]}>{campaign.prize}</Text>
+                <Text style={[styles.prizeText, { color: Colors.primary }]}>{campaign.prize}</Text>
                 <Text style={styles.statLabel}>Prize</Text>
               </View>
             </View>
@@ -372,6 +372,12 @@ const styles = StyleSheet.create({
     color: Colors.text.primary,
     marginTop: 4,
   },
+prizeText: {
+  fontSize: 16,
+  fontWeight: '700',
+  color: Colors.text.primary,
+  marginTop: 4,
+},
   statLabel: {
     fontSize: 12,
     color: Colors.text.secondary,

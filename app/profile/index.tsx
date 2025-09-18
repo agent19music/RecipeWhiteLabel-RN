@@ -8,381 +8,303 @@ import {
   TouchableOpacity,
   Image,
   Switch,
-  Dimensions
+  Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { Colors } from '@/constants/Colors';
-import { useAppState } from '@/context/AppState';
 import { useAuth } from '@/context/AuthContext';
-import { theme, useTheme } from '@/theme';
-import ProfileSetupBanner from '@/components/ProfileSetupBanner';
+import * as ImagePicker from 'expo-image-picker';
+import * as Haptics from 'expo-haptics';
+import { supabase } from '@/lib/supabase';
 
-const { width } = Dimensions.get('window');
-
-export default function Profile() {
+export default function ProfileScreen() {
   const router = useRouter();
-  const { palette } = useTheme();
-  const { prefs } = useAppState();
-  const { user, profile, signOut } = useAuth();
+  const { user, signOut } = useAuth();
   
-  // State for settings
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [avatarUrl, setAvatarUrl] = useState(user?.user_metadata?.avatar_url || null);
   const [notifications, setNotifications] = useState(true);
   const [darkMode, setDarkMode] = useState(false);
-  const [autoPlay, setAutoPlay] = useState(true);
-  const [privateAccount, setPrivateAccount] = useState(false);
-  
+
+  // Avatar upload functionality
+  const uploadAvatar = async () => {
+    try {
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      setUploadingAvatar(true);
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.7,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        const image = result.assets[0];
+        
+        // Create form data for upload
+        const formData = new FormData();
+        formData.append('file', {
+          uri: image.uri,
+          type: 'image/jpeg',
+          name: `avatar-${user?.id || 'user'}-${Date.now()}.jpg`,
+        } as any);
+
+        // Generate unique filename
+        const fileName = `avatar-${user?.id || 'user'}-${Date.now()}.jpg`;
+        
+        // Upload to Supabase Storage
+        const { error: uploadError } = await supabase
+          .storage
+          .from('avatars')
+          .upload(fileName, {
+            uri: image.uri,
+            type: 'image/jpeg',
+            name: fileName,
+          } as any);
+
+        if (uploadError) {
+          console.error('Upload error:', uploadError);
+          Alert.alert('Upload Failed', 'Failed to upload avatar. Please try again.');
+          return;
+        }
+
+        // Get public URL
+        const { data: publicUrlData } = supabase
+          .storage
+          .from('avatars')
+          .getPublicUrl(fileName);
+
+        const publicUrl = publicUrlData.publicUrl;
+        
+        // Update avatar state
+        setAvatarUrl(publicUrl);
+        
+        Alert.alert('Success', 'Avatar updated successfully!');
+      }
+    } catch (error) {
+      console.error('Error uploading avatar:', error);
+      Alert.alert('Error', 'Failed to upload avatar. Please try again.');
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
+
   // User data from auth or mock for guests
   const userData = {
-    name: user ? (profile?.full_name || user.email?.split('@')[0] || 'User') : 'Guest User',
+    name: user ? (user.user_metadata?.full_name || user.email?.split('@')[0] || 'User') : 'Guest User',
     email: user?.email || 'guest@example.com',
-    avatar: profile?.avatar_url || null,
+    avatar: avatarUrl || user?.user_metadata?.avatar_url || null,
     joinDate: user ? `Member since ${new Date(user.created_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}` : 'Guest User',
-    recipesCount: profile?.recipes_count || 0,
-    savedCount: 0, // TODO: Implement favorites count
-    followersCount: profile?.followers_count || 0,
-    followingCount: profile?.following_count || 0,
+    recipesCount: 0,
+    savedCount: 0,
+    followersCount: 0,
+    followingCount: 0,
     level: user ? 'Home Chef' : 'Guest',
     points: 0,
-  };
-
-  const settingsSections = [
-    {
-      title: 'Dietary Preferences',
-      items: [
-        {
-          icon: 'nutrition',
-          title: 'Diet Type',
-          subtitle: (prefs.diets || []).join(', ') || 'Not set',
-          onPress: () => router.push('/onboarding/diet'),
-        },
-        {
-          icon: 'warning',
-          title: 'Allergies',
-          subtitle: (prefs.allergies || []).join(', ') || 'None',
-          onPress: () => router.push('/onboarding/allergies'),
-        },
-        {
-          icon: 'trending-up',
-          title: 'Health Goals',
-          subtitle: (prefs.goals || []).join(', ') || 'Not set',
-          onPress: () => router.push('/onboarding/goals'),
-        },
-      ],
-    },
-    {
-      title: 'App Settings',
-      items: [
-        {
-          icon: 'notifications',
-          title: 'Push Notifications',
-          subtitle: notifications ? 'Enabled' : 'Disabled',
-          toggle: true,
-          value: notifications,
-          onToggle: setNotifications,
-        },
-        {
-          icon: 'moon',
-          title: 'Dark Mode',
-          subtitle: darkMode ? 'On' : 'Off',
-          toggle: true,
-          value: darkMode,
-          onToggle: setDarkMode,
-        },
-        {
-          icon: 'language',
-          title: 'Language',
-          subtitle: 'English',
-          onPress: () => {},
-        },
-        {
-          icon: 'speed',
-          title: 'Units',
-          subtitle: prefs.unitSystem || 'Metric',
-          onPress: () => {},
-        },
-      ],
-    },
-    {
-      title: 'Account & Privacy',
-      items: [
-        {
-          icon: 'lock',
-          title: 'Private Account',
-          subtitle: privateAccount ? 'Private' : 'Public',
-          toggle: true,
-          value: privateAccount,
-          onToggle: setPrivateAccount,
-        },
-        {
-          icon: 'person',
-          title: 'Edit Profile',
-          onPress: () => {},
-        },
-        {
-          icon: 'security',
-          title: 'Privacy Settings',
-          onPress: () => {},
-        },
-        {
-          icon: 'key',
-          title: 'Change Password',
-          onPress: () => {},
-        },
-      ],
-    },
-    {
-      title: 'Preferences',
-      items: [
-        {
-          icon: 'home',
-          title: 'Household Size',
-          subtitle: `${prefs.householdSize || 1} ${prefs.householdSize === 1 ? 'person' : 'people'}`,
-          onPress: () => router.push('/onboarding/household'),
-        },
-        {
-          icon: 'payments',
-          title: 'Weekly Budget',
-          subtitle: `KES ${prefs.weeklyBudgetKES || 0}`,
-          onPress: () => router.push('/onboarding/budget'),
-        },
-        {
-          icon: 'play-circle',
-          title: 'Auto-play Videos',
-          subtitle: autoPlay ? 'On' : 'Off',
-          toggle: true,
-          value: autoPlay,
-          onToggle: setAutoPlay,
-        },
-      ],
-    },
-    {
-      title: 'Support',
-      items: [
-        {
-          icon: 'help-circle',
-          title: 'Help Center',
-          onPress: () => {},
-        },
-        {
-          icon: 'mail',
-          title: 'Contact Us',
-          onPress: () => {},
-        },
-        {
-          icon: 'star',
-          title: 'Rate App',
-          onPress: () => {},
-        },
-        {
-          icon: 'info-circle',
-          title: 'About',
-          onPress: () => {},
-        },
-      ],
-    },
-    // Add sign out section for authenticated users
-    ...(user ? [{
-      title: 'Account',
-      items: [
-        {
-          icon: 'exit-to-app',
-          title: 'Sign Out',
-          onPress: async () => {
-            try {
-              await signOut();
-              router.replace('/onboarding/start');
-            } catch (error) {
-              console.error('Sign out error:', error);
-            }
-          },
-        },
-      ],
-    }] : [{
-      title: 'Account',
-      items: [
-        {
-          icon: 'account-plus',
-          title: 'Sign In / Create Account',
-          onPress: () => router.push('/auth/signin'),
-        },
-      ],
-    }]),
-  ];
-
-  const achievementBadges = [
-    { id: '1', name: 'First Recipe', icon: 'trophy', color: '#FFD700' },
-    { id: '2', name: 'Week Streak', icon: 'fire', color: '#FF6B6B' },
-    { id: '3', name: 'Master Chef', icon: 'chef-hat', color: '#4ECDC4' },
-    { id: '4', name: 'Explorer', icon: 'compass', color: '#95E77E' },
-  ];
-
-  const renderSettingItem = (item: any) => {
-    if (item.toggle) {
-      return (
-        <View style={styles.settingItem}>
-          <View style={styles.settingLeft}>
-            <MaterialIcons name={item.icon} size={24} color={Colors.text.secondary} />
-            <View style={styles.settingText}>
-              <Text style={styles.settingTitle}>{item.title}</Text>
-              {item.subtitle && (
-                <Text style={styles.settingSubtitle}>{item.subtitle}</Text>
-              )}
-            </View>
-          </View>
-          <Switch
-            value={item.value}
-            onValueChange={item.onToggle}
-            trackColor={{ false: Colors.gray[300], true: Colors.primary }}
-            thumbColor={item.value ? Colors.white : Colors.gray[100]}
-          />
-        </View>
-      );
-    }
-
-    return (
-      <TouchableOpacity style={styles.settingItem} onPress={item.onPress}>
-        <View style={styles.settingLeft}>
-          <MaterialIcons name={item.icon} size={24} color={Colors.text.secondary} />
-          <View style={styles.settingText}>
-            <Text style={styles.settingTitle}>{item.title}</Text>
-            {item.subtitle && (
-              <Text style={styles.settingSubtitle}>{item.subtitle}</Text>
-            )}
-          </View>
-        </View>
-        <Ionicons name="chevron-forward" size={20} color={Colors.gray[400]} />
-      </TouchableOpacity>
-    );
-  };
-
-  return (
+  };  return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <ScrollView 
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
       >
-        {/* Header: replace with glass back button only */}
+        {/* Header */}
         <View style={styles.header}>
           <GlassmorphicBackButton />
+          <Text style={styles.headerTitle}>Profile</Text>
+          <View style={styles.headerSpacer} />
         </View>
 
-        {/* Profile Setup Banner */}
-        <ProfileSetupBanner />
-
-        {/* User Info Section */}
-        <View style={styles.userSection}>
-          <View style={styles.userInfo}>
-            <View style={styles.avatarContainer}>
-              {userData.avatar ? (
-                <Image source={{ uri: userData.avatar }} style={styles.avatar} />
-              ) : (
-                <View style={styles.avatarPlaceholder}>
-                  <Ionicons name="person" size={40} color={Colors.white} />
+        {/* Profile Card */}
+        <View style={styles.profileCard}>
+          <View style={styles.profileHeader}>
+            <View style={styles.avatarSection}>
+              <TouchableOpacity 
+                style={styles.avatarContainer}
+                onPress={uploadAvatar}
+                disabled={uploadingAvatar}
+              >
+                {userData.avatar ? (
+                  <Image source={{ uri: userData.avatar }} style={styles.avatar} />
+                ) : (
+                  <View style={styles.avatarPlaceholder}>
+                    <Ionicons name="person" size={32} color={Colors.white} />
+                  </View>
+                )}
+                <View style={styles.avatarOverlay}>
+                  {uploadingAvatar ? (
+                    <ActivityIndicator size="small" color={Colors.white} />
+                  ) : (
+                    <Ionicons name="camera" size={16} color={Colors.white} />
+                  )}
                 </View>
-              )}
-              <TouchableOpacity style={styles.editAvatarButton}>
-                <Ionicons name="camera" size={16} color={Colors.white} />
               </TouchableOpacity>
-            </View>
-            <View style={styles.userDetails}>
-              <Text style={styles.userName}>{userData.name}</Text>
-              <Text style={styles.userEmail}>{userData.email}</Text>
-              <Text style={styles.userJoinDate}>{userData.joinDate}</Text>
-              <View style={styles.userLevel}>
-                <MaterialCommunityIcons name="chef-hat" size={16} color={Colors.primary} />
-                <Text style={styles.userLevelText}>{userData.level}</Text>
-                <Text style={styles.userPoints}>• {userData.points} pts</Text>
+              
+              <View style={styles.profileInfo}>
+                <Text style={styles.userName}>{userData.name}</Text>
+                <Text style={styles.userEmail}>{userData.email}</Text>
+                <View style={styles.levelBadge}>
+                  <MaterialCommunityIcons name="chef-hat" size={14} color={Colors.primary} />
+                  <Text style={styles.levelText}>{userData.level}</Text>
+                </View>
               </View>
             </View>
-          </View>
 
-          {/* Stats */}
-          <View style={styles.statsContainer}>
-            <TouchableOpacity style={styles.statItem}>
-              <Text style={styles.statNumber}>{userData.recipesCount}</Text>
-              <Text style={styles.statLabel}>Recipes</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.statItem}>
-              <Text style={styles.statNumber}>{userData.savedCount}</Text>
-              <Text style={styles.statLabel}>Saved</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.statItem}>
-              <Text style={styles.statNumber}>{userData.followersCount}</Text>
-              <Text style={styles.statLabel}>Followers</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.statItem}>
-              <Text style={styles.statNumber}>{userData.followingCount}</Text>
-              <Text style={styles.statLabel}>Following</Text>
-            </TouchableOpacity>
+            {/* Stats Row */}
+            <View style={styles.statsRow}>
+              <View style={styles.statItem}>
+                <Text style={styles.statNumber}>{userData.recipesCount}</Text>
+                <Text style={styles.statLabel}>Recipes</Text>
+              </View>
+              <View style={styles.statDivider} />
+              <View style={styles.statItem}>
+                <Text style={styles.statNumber}>{userData.followersCount}</Text>
+                <Text style={styles.statLabel}>Followers</Text>
+              </View>
+              <View style={styles.statDivider} />
+              <View style={styles.statItem}>
+                <Text style={styles.statNumber}>{userData.followingCount}</Text>
+                <Text style={styles.statLabel}>Following</Text>
+              </View>
+            </View>
           </View>
         </View>
 
         {/* Quick Actions */}
-        <View style={styles.quickActions}>
-          <TouchableOpacity style={styles.quickActionItem} onPress={() => router.push('/saved-recipes')}>
-            <Ionicons name="bookmark" size={24} color={Colors.primary} />
-            <Text style={styles.quickActionText}>Saved Recipes</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.quickActionItem} onPress={() => router.push('/my-recipes')}>
-            <Ionicons name="restaurant" size={24} color={Colors.primary} />
-            <Text style={styles.quickActionText}>My Recipes</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.quickActionItem} onPress={() => router.push('/history')}>
-            <Ionicons name="time" size={24} color={Colors.primary} />
-            <Text style={styles.quickActionText}>History</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.quickActionItem} onPress={() => router.push('/achievements')}>
-            <Ionicons name="trophy" size={24} color={Colors.primary} />
-            <Text style={styles.quickActionText}>Achievements</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Achievement Badges */}
-        <View style={styles.achievementSection}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Recent Achievements</Text>
-            <TouchableOpacity>
-              <Text style={styles.seeAllText}>See all</Text>
+        <View style={styles.quickActionsSection}>
+          <Text style={styles.sectionTitle}>Quick Actions</Text>
+          <View style={styles.quickActionsGrid}>
+            <TouchableOpacity style={styles.quickAction}>
+              <View style={styles.quickActionIcon}>
+                <Ionicons name="bookmark-outline" size={24} color={Colors.primary} />
+              </View>
+              <Text style={styles.quickActionText}>Saved</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.quickAction}>
+              <View style={styles.quickActionIcon}>
+                <Ionicons name="restaurant-outline" size={24} color={Colors.primary} />
+              </View>
+              <Text style={styles.quickActionText}>My Recipes</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.quickAction}>
+              <View style={styles.quickActionIcon}>
+                <Ionicons name="trophy-outline" size={24} color={Colors.primary} />
+              </View>
+              <Text style={styles.quickActionText}>Achievements</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.quickAction}>
+              <View style={styles.quickActionIcon}>
+                <Ionicons name="settings-outline" size={24} color={Colors.primary} />
+              </View>
+              <Text style={styles.quickActionText}>Settings</Text>
             </TouchableOpacity>
           </View>
-          <ScrollView 
-            horizontal 
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.badgesContainer}
-          >
-            {achievementBadges.map((badge) => (
-              <View key={badge.id} style={styles.badgeItem}>
-                <View style={[styles.badgeIcon, { backgroundColor: badge.color }]}>
-                  <MaterialCommunityIcons name={badge.icon} size={24} color={Colors.white} />
-                </View>
-                <Text style={styles.badgeName}>{badge.name}</Text>
-              </View>
-            ))}
-          </ScrollView>
         </View>
 
-        {/* Settings Sections */}
-        {settingsSections.map((section, index) => (
-          <View key={index} style={styles.settingsSection}>
-            <Text style={styles.sectionTitle}>{section.title}</Text>
-            <View style={styles.settingsCard}>
-              {section.items.map((item, itemIndex) => (
-                <React.Fragment key={itemIndex}>
-                  {renderSettingItem(item)}
-                  {itemIndex < section.items.length - 1 && <View style={styles.divider} />}
-                </React.Fragment>
-              ))}
+        {/* Essential Settings */}
+        <View style={styles.settingsSection}>
+          <Text style={styles.sectionTitle}>Preferences</Text>
+          <View style={styles.settingsCard}>
+            <TouchableOpacity style={styles.settingItem} onPress={() => router.push('/onboarding/diet')}>
+              <View style={styles.settingLeft}>
+                <MaterialIcons name="restaurant" size={22} color={Colors.text.secondary} />
+                <View style={styles.settingText}>
+                  <Text style={styles.settingTitle}>Dietary Preferences</Text>
+                  <Text style={styles.settingSubtitle}>
+                    Not set
+                  </Text>
+                </View>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color={Colors.text.tertiary} />
+            </TouchableOpacity>
+            
+            <View style={styles.divider} />
+            
+            <View style={styles.settingItem}>
+              <View style={styles.settingLeft}>
+                <MaterialIcons name="notifications" size={22} color={Colors.text.secondary} />
+                <View style={styles.settingText}>
+                  <Text style={styles.settingTitle}>Notifications</Text>
+                  <Text style={styles.settingSubtitle}>
+                    {notifications ? 'Enabled' : 'Disabled'}
+                  </Text>
+                </View>
+              </View>
+              <Switch
+                value={notifications}
+                onValueChange={setNotifications}
+                trackColor={{ false: Colors.gray[300], true: Colors.primary }}
+                thumbColor={notifications ? Colors.white : Colors.gray[100]}
+              />
+            </View>
+            
+            <View style={styles.divider} />
+            
+            <View style={styles.settingItem}>
+              <View style={styles.settingLeft}>
+                <MaterialIcons name="dark-mode" size={22} color={Colors.text.secondary} />
+                <View style={styles.settingText}>
+                  <Text style={styles.settingTitle}>Dark Mode</Text>
+                  <Text style={styles.settingSubtitle}>
+                    {darkMode ? 'On' : 'Off'}
+                  </Text>
+                </View>
+              </View>
+              <Switch
+                value={darkMode}
+                onValueChange={setDarkMode}
+                trackColor={{ false: Colors.gray[300], true: Colors.primary }}
+                thumbColor={darkMode ? Colors.white : Colors.gray[100]}
+              />
             </View>
           </View>
-        ))}
+        </View>
 
-        {/* Logout Button */}
-        <TouchableOpacity style={styles.logoutButton}>
-          <MaterialIcons name="logout" size={20} color={Colors.error} />
-          <Text style={styles.logoutText}>Log Out</Text>
-        </TouchableOpacity>
+        {/* Account Actions */}
+        <View style={styles.settingsSection}>
+          <Text style={styles.sectionTitle}>Account</Text>
+          <View style={styles.settingsCard}>
+            <TouchableOpacity style={styles.settingItem}>
+              <View style={styles.settingLeft}>
+                <MaterialIcons name="person" size={22} color={Colors.text.secondary} />
+                <Text style={styles.settingTitle}>Edit Profile</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color={Colors.text.tertiary} />
+            </TouchableOpacity>
+            
+            <View style={styles.divider} />
+            
+            <TouchableOpacity style={styles.settingItem}>
+              <View style={styles.settingLeft}>
+                <MaterialIcons name="help" size={22} color={Colors.text.secondary} />
+                <Text style={styles.settingTitle}>Help & Support</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color={Colors.text.tertiary} />
+            </TouchableOpacity>
+            
+            <View style={styles.divider} />
+            
+            <TouchableOpacity 
+              style={styles.settingItem}
+              onPress={async () => {
+                try {
+                  await signOut();
+                  router.replace('/auth/signin');
+                } catch (error) {
+                  console.error('Sign out error:', error);
+                }
+              }}
+            >
+              <View style={styles.settingLeft}>
+                <MaterialIcons name="logout" size={22} color={Colors.error} />
+                <Text style={[styles.settingTitle, { color: Colors.error }]}>Sign Out</Text>
+              </View>
+            </TouchableOpacity>
+          </View>
+        </View>
 
         <View style={styles.bottomSpacing} />
       </ScrollView>
@@ -406,30 +328,37 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
   },
   headerTitle: {
-    fontSize: 32,
+    fontSize: 20,
     fontWeight: '700',
     color: Colors.text.primary,
   },
-  settingsButton: {
+  headerSpacer: {
     width: 40,
-    height: 40,
+  },
+  
+  // Profile Card Styles
+  profileCard: {
+    marginHorizontal: 20,
+    marginBottom: 24,
+    backgroundColor: Colors.white,
     borderRadius: 20,
-    backgroundColor: Colors.surface,
-    justifyContent: 'center',
+    padding: 20,
+    shadowColor: Colors.black,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  profileHeader: {
     alignItems: 'center',
   },
-  userSection: {
-    paddingHorizontal: 20,
-    paddingBottom: 20,
-  },
-  userInfo: {
-    flexDirection: 'row',
+  avatarSection: {
     alignItems: 'center',
     marginBottom: 20,
   },
   avatarContainer: {
     position: 'relative',
-    marginRight: 16,
+    marginBottom: 16,
   },
   avatar: {
     width: 80,
@@ -444,7 +373,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  editAvatarButton: {
+  avatarOverlay: {
     position: 'absolute',
     bottom: 0,
     right: 0,
@@ -454,11 +383,11 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 2,
+    borderWidth: 3,
     borderColor: Colors.white,
   },
-  userDetails: {
-    flex: 1,
+  profileInfo: {
+    alignItems: 'center',
   },
   userName: {
     fontSize: 24,
@@ -469,124 +398,118 @@ const styles = StyleSheet.create({
   userEmail: {
     fontSize: 14,
     color: Colors.text.secondary,
-    marginBottom: 4,
-  },
-  userJoinDate: {
-    fontSize: 12,
-    color: Colors.text.tertiary,
     marginBottom: 8,
   },
-  userLevel: {
+  levelBadge: {
     flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: Colors.surface,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
     gap: 6,
   },
-  userLevelText: {
+  levelText: {
     fontSize: 14,
     fontWeight: '600',
     color: Colors.primary,
   },
-  userPoints: {
-    fontSize: 14,
-    color: Colors.text.secondary,
-  },
-  statsContainer: {
+  
+  // Stats Row
+  statsRow: {
     flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: Colors.surface,
     borderRadius: 16,
     padding: 16,
+    marginTop: 16,
   },
   statItem: {
     flex: 1,
     alignItems: 'center',
+    paddingHorizontal: 8,
   },
   statNumber: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '700',
     color: Colors.text.primary,
-    marginBottom: 4,
+    marginBottom: 2,
   },
   statLabel: {
     fontSize: 12,
     color: Colors.text.secondary,
+    fontWeight: '500',
   },
-  quickActions: {
-    flexDirection: 'row',
-    paddingHorizontal: 20,
+  statDivider: {
+    width: 1,
+    height: 24,
+    backgroundColor: Colors.border,
+  },
+  
+  // Quick Actions
+  quickActionsSection: {
+    marginHorizontal: 20,
     marginBottom: 24,
-    gap: 12,
-  },
-  quickActionItem: {
-    flex: 1,
-    backgroundColor: Colors.surface,
-    borderRadius: 12,
-    padding: 12,
-    alignItems: 'center',
-    gap: 8,
-  },
-  quickActionText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: Colors.text.primary,
-    textAlign: 'center',
-  },
-  achievementSection: {
-    marginBottom: 24,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    marginBottom: 12,
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: '700',
     color: Colors.text.primary,
     marginBottom: 12,
-    paddingHorizontal: 20,
   },
-  seeAllText: {
-    fontSize: 14,
-    color: Colors.primary,
-    fontWeight: '600',
+  quickActionsGrid: {
+    flexDirection: 'row',
+    gap: 12,
   },
-  badgesContainer: {
-    paddingHorizontal: 20,
-    gap: 16,
-  },
-  badgeItem: {
+  quickAction: {
+    flex: 1,
+    backgroundColor: Colors.white,
+    borderRadius: 16,
+    padding: 16,
     alignItems: 'center',
-    marginRight: 16,
+    shadowColor: Colors.black,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
   },
-  badgeIcon: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+  quickActionIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: Colors.surface,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 8,
   },
-  badgeName: {
+  quickActionText: {
     fontSize: 12,
     fontWeight: '600',
     color: Colors.text.primary,
+    textAlign: 'center',
   },
+  
+  // Settings
   settingsSection: {
+    marginHorizontal: 20,
     marginBottom: 24,
   },
   settingsCard: {
-    marginHorizontal: 20,
-    backgroundColor: Colors.surface,
+    backgroundColor: Colors.white,
     borderRadius: 16,
     overflow: 'hidden',
+    shadowColor: Colors.black,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
   },
   settingItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: 16,
+    minHeight: 60,
   },
   settingLeft: {
     flexDirection: 'row',
@@ -601,32 +524,16 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: Colors.text.primary,
-    marginBottom: 2,
   },
   settingSubtitle: {
     fontSize: 13,
     color: Colors.text.secondary,
+    marginTop: 2,
   },
   divider: {
     height: 1,
     backgroundColor: Colors.border,
-    marginLeft: 52,
-  },
-  logoutButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginHorizontal: 20,
-    marginVertical: 20,
-    padding: 16,
-    backgroundColor: Colors.surface,
-    borderRadius: 12,
-    gap: 8,
-  },
-  logoutText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: Colors.error,
+    marginLeft: 50,
   },
   bottomSpacing: {
     height: 40,
