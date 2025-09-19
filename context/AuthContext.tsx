@@ -139,31 +139,42 @@ export function AuthProvider({ children }: AuthProviderProps) {
       // Complete auth session for web browser
       WebBrowser.maybeCompleteAuthSession();
       
-      // For mobile apps, we don't pass a redirectTo parameter
-      // Supabase will use its default callback URL which is configured in Google Console
+      // Create redirect URI for the auth session
+      const redirectUrl = makeRedirectUri({
+        scheme: 'roycorecipe',
+        path: 'auth',
+      });
+      
+      console.log('Configured redirect URL:', redirectUrl);
+      
+      // Configure OAuth with proper redirect URL
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
           skipBrowserRedirect: true, // Important for React Native
+          redirectTo: redirectUrl, // Explicitly set the redirect URL
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          },
         },
       });
 
       if (error) throw error;
 
       if (data?.url) {
-        // Create redirect URI for the auth session
-        const redirectUrl = makeRedirectUri({
-          scheme: 'roycorecipe',
-          path: 'auth',
-        });
-        
         console.log('Auth URL:', data.url);
-        console.log('Redirect URL:', redirectUrl);
+        console.log('Opening auth session with redirect URL:', redirectUrl);
         
         // Open the OAuth URL in the browser
         const result = await WebBrowser.openAuthSessionAsync(
           data.url,
-          redirectUrl
+          redirectUrl,
+          {
+            // Options for better control of the auth session
+            showInRecents: false,
+            createTask: false,
+          }
         );
 
         if (result.type === 'success') {
@@ -189,11 +200,30 @@ export function AuthProvider({ children }: AuthProviderProps) {
     try {
       console.log('Callback URL received:', url);
       
+      // Ensure the URL is valid and properly formatted
+      if (!url || typeof url !== 'string') {
+        throw new Error('Invalid callback URL');
+      }
+      
+      // Handle potential URL issues (some platforms might return URLs without proper protocol)
+      let processedUrl = url;
+      if (!processedUrl.includes('://')) {
+        // If the URL doesn't have a protocol, add the app scheme
+        processedUrl = `roycorecipe://${processedUrl}`;
+      }
+      
       // Parse the URL - tokens might be in hash or query params
-      const urlObj = new URL(url);
+      let urlObj;
+      try {
+        urlObj = new URL(processedUrl);
+      } catch (parseError) {
+        console.error('URL parse error:', parseError);
+        console.error('Problematic URL:', processedUrl);
+        throw new Error('Failed to parse callback URL');
+      }
       
       // First check hash parameters (common for OAuth implicit flow)
-      let params = new URLSearchParams(urlObj.hash.substring(1));
+      let params = new URLSearchParams(urlObj.hash ? urlObj.hash.substring(1) : '');
       
       // If not in hash, check query parameters
       if (!params.has('access_token')) {

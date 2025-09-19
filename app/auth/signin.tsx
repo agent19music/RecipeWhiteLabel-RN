@@ -23,6 +23,7 @@ import * as Haptics from 'expo-haptics';
 import Dialog from '@/components/Dialog';
 import { useDialog } from '@/hooks/useDialog';
 
+
 // Removed unused Dimensions variables
 
 export default function SignInScreen() {
@@ -208,9 +209,11 @@ export default function SignInScreen() {
             ]}
           >
             {/* App Icon */}
-            <View style={[styles.iconContainer, { backgroundColor: palette.primary }]}>
-              <MaterialCommunityIcons name="chef-hat" size={40} color="#FFFFFF" />
-            </View>
+              <ImageBackground
+                  source={require('../../assets/images/icon.png')}
+                  style={styles.iconContainer}
+                  imageStyle={{ borderRadius: 20 }}
+              />
 
             {/* Title */}
             <Text style={[styles.title, { color: palette.text }]}>

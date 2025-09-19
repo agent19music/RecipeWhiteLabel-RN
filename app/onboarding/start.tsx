@@ -91,13 +91,11 @@ export default function OnboardingStart(){
           ]}
         >
           {/* App Icon */}
-          <View style={[styles.iconContainer, { backgroundColor: palette.primary }]}>
-            <MaterialCommunityIcons 
-              name="chef-hat" 
-              size={48} 
-              color="#FFFFFF" 
+            <ImageBackground
+                source={require('../../assets/images/icon.png')}
+                style={styles.iconContainer}
+                imageStyle={{ borderRadius: 20 }}
             />
-          </View>
           
           {/* Title */}
           <Text style={[styles.title, { color: palette.text }]}>
