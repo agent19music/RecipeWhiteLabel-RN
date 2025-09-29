@@ -1,6 +1,7 @@
 import { Colors } from '@/constants/Colors';
 import { PantryItem } from '@/data/types';
-import { analyzeGroceryImage } from '@/lib/openai';
+// Use enhanced AI vision service with fallback support
+import { analyzeGroceryImage, type DetectionResult } from '@/lib/ai-vision';
 import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import * as Haptics from 'expo-haptics';
@@ -131,69 +132,122 @@ export default function PantryCameraModal({
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
     try {
+      console.log('Starting image analysis for:', imageUri);
+      
       // Convert image to base64
       const response = await fetch(imageUri);
+      if (!response.ok) {
+        throw new Error('Failed to load image from URI');
+      }
+      
       const blob = await response.blob();
-      const base64 = await new Promise<string>((resolve) => {
+      console.log('Image blob size:', blob.size);
+      
+      const base64 = await new Promise<string>((resolve, reject) => {
         const reader = new FileReader();
         reader.onloadend = () => {
           const result = reader.result as string;
-          resolve(result.split(',')[1]);
+          if (result) {
+            resolve(result.split(',')[1]);
+          } else {
+            reject(new Error('Failed to convert image to base64'));
+          }
         };
+        reader.onerror = reject;
         reader.readAsDataURL(blob);
       });
 
-      // Analyze with OpenAI Vision
-      const result = await analyzeGroceryImage(base64);
+      console.log('Base64 conversion complete, analyzing with AI...');
+      
+      // Analyze with AI Vision (OpenAI or Gemini)
+      const result: DetectionResult = await analyzeGroceryImage(base64);
+      console.log('AI analysis result:', result);
+      
+      // Show which method was used
+      if (result.method) {
+        console.log(`Detection method used: ${result.method}`);
+      }
 
       if (result.success && result.items.length > 0) {
+        console.log(`Successfully detected ${result.items.length} items`);
+        
         const pantryItems: PantryItem[] = result.items.map(item => {
-          const expiryDate = new Date();
-          expiryDate.setDate(expiryDate.getDate() + (item.expiryEstimate || 7));
-          
+          // Items from ai-vision already have proper expiry dates
           return {
-            id: generateItemId(),
-            title: item.name,
+            id: item.id || generateItemId(),
+            title: item.title || item.name,
             name: item.name,
             quantity: item.quantity || 1,
             unit: item.unit || 'pieces',
             category: item.category,
-            expiryDate: expiryDate.toISOString().split('T')[0],
-            expiresOn: expiryDate.toISOString().split('T')[0],
+            expiryDate: item.expiryDate || item.expiresOn,
+            expiresOn: item.expiresOn || item.expiryDate,
+            qty: item.qty || item.quantity || 1,
           };
         });
 
         setDetectedItems(pantryItems);
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         
-        // Show confidence level
-        if (result.totalConfidence > 0.8) {
-          Alert.alert(
-            'Great Detection!',
-            `Found ${result.items.length} grocery items with high confidence`,
-            [{ text: 'OK' }]
-          );
-        }
+        // Show success message with method info
+        const methodInfo = result.method === 'mock' ? ' (Demo Mode)' : '';
+        Alert.alert(
+          `Items Detected${methodInfo}`,
+          `Found ${result.items.length} grocery items. You can review and edit them before adding to your pantry.`,
+          [{ text: 'OK' }]
+        );
+      } else if (!result.success && result.message) {
+        console.warn('Detection failed:', result.message);
+        throw new Error(result.message);
       } else {
-        throw new Error(result.message || 'No grocery items detected');
+        console.log('No items detected in the image');
+        Alert.alert(
+          'No Items Found',
+          'No grocery items were detected in the image. Try taking a clearer photo with better lighting.',
+          [{ text: 'OK' }]
+        );
+        setDetectedItems([]);
       }
     } catch (error) {
       console.error('AI Analysis error:', error);
       
-      // Fallback to mock data for demo purposes
-      const mockItems: PantryItem[] = [
-        { id: generateItemId(), title: 'Tomatoes', qty: 4, unit: 'pcs', expiresOn: '2025-09-10' },
-        { id: generateItemId(), title: 'Milk', qty: 1, unit: 'L', expiresOn: '2025-09-05' },
-        { id: generateItemId(), title: 'Bread', qty: 1, unit: 'loaf', expiresOn: '2025-09-08' },
-      ];
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       
-      setDetectedItems(mockItems);
-      
-      Alert.alert(
-        'AI Analysis',
-        'Using demo data. In production, this would analyze your image using OpenAI Vision API.',
-        [{ text: 'OK' }]
-      );
+      // Check if it's an API key issue
+      if (errorMessage.includes('401') || errorMessage.includes('API key')) {
+        Alert.alert(
+          'Configuration Error',
+          'OpenAI API key is invalid or expired. Please check your .env configuration.',
+          [{ text: 'OK' }]
+        );
+      } else if (errorMessage.includes('429')) {
+        Alert.alert(
+          'Rate Limit',
+          'Too many requests. Please wait a moment and try again.',
+          [{ text: 'OK' }]
+        );
+      } else {
+        // Use fallback demo data for testing
+        Alert.alert(
+          'Detection Error',
+          `Failed to analyze image: ${errorMessage}\n\nUsing demo data for testing.`,
+          [
+            {
+              text: 'Use Demo Data',
+              onPress: () => {
+                const mockItems: PantryItem[] = [
+                  { id: generateItemId(), title: 'Tomatoes', qty: 4, unit: 'pcs', expiresOn: '2025-10-10' },
+                  { id: generateItemId(), title: 'Milk', qty: 1, unit: 'L', expiresOn: '2025-10-05' },
+                  { id: generateItemId(), title: 'Bread', qty: 1, unit: 'loaf', expiresOn: '2025-10-08' },
+                  { id: generateItemId(), title: 'Apples', qty: 6, unit: 'pcs', expiresOn: '2025-10-15' },
+                ];
+                setDetectedItems(mockItems);
+              }
+            },
+            { text: 'Cancel', style: 'cancel' }
+          ]
+        );
+      }
     } finally {
       setIsAnalyzing(false);
     }

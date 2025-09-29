@@ -1,5 +1,6 @@
 import { HapticTab } from '@/components/HapticTab';
 import { Colors } from '@/constants/Colors';
+import { useTheme } from '@/theme';
 import { Ionicons } from '@expo/vector-icons';
 import Entypo from '@expo/vector-icons/Entypo';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
@@ -8,17 +9,18 @@ import React from 'react';
 import { Platform, View } from 'react-native';
 
 export default function TabLayout() {
+  const { palette, isDark } = useTheme();
 
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors.primary,
-        tabBarInactiveTintColor: Colors.gray[500],
+        tabBarActiveTintColor: palette.primary,
+        tabBarInactiveTintColor: isDark ? palette.subtext : Colors.gray[500],
         headerShown: false,
         tabBarButton: HapticTab,
         tabBarStyle: {
-          backgroundColor: Colors.tabBar.background,
-          borderTopColor: Colors.tabBar.border,
+          backgroundColor: palette.bg,
+          borderTopColor: palette.border,
           borderTopWidth: 1,
           paddingTop: 8,
           paddingBottom: Platform.OS === 'ios' ? 28 : 8,
@@ -67,7 +69,7 @@ export default function TabLayout() {
       
       {/* AI Recipe Tab - Centered with special styling */}
       <Tabs.Screen 
-        name="ai-camera" 
+        name="ai"
         options={{ 
           title: 'AI Recipe', 
           tabBarLabel: 'AI Recipe',
@@ -76,17 +78,17 @@ export default function TabLayout() {
               width: 56,
               height: 56,
               borderRadius: 28,
-              backgroundColor: focused ? Colors.primary : Colors.primary + '90',
+              backgroundColor: focused ? palette.primary : palette.primary + '90',
               justifyContent: 'center',
               alignItems: 'center',
               marginTop: -12,
-              shadowColor: Colors.primary,
+              shadowColor: palette.primary,
               shadowOffset: { width: 0, height: 4 },
               shadowOpacity: 0.3,
               shadowRadius: 8,
               elevation: 8,
               borderWidth: 3,
-              borderColor: Colors.white,
+              borderColor: palette.bg,
             }}>
               <MaterialIcons name="auto-awesome" size={28} color={Colors.white} />
             </View>
@@ -96,7 +98,7 @@ export default function TabLayout() {
       
       {/* Pantry Tab */}
       <Tabs.Screen 
-        name="pantry" 
+        name="pantry/pantry"
         options={{ 
           title: 'Pantry', 
           tabBarLabel: 'Pantry',
@@ -128,18 +130,20 @@ export default function TabLayout() {
       
       {/* Hide the pantry sub-screens from navigation */}
       <Tabs.Screen 
-        name="pantry/enhanced" 
+        name="pantry/enhanced"
         options={{ 
           href: null,
         }} 
       />
       
       <Tabs.Screen 
-        name="pantry/smart-shopping" 
+        name="pantry/smart-shopping"
         options={{ 
           href: null,
         }} 
       />
+
+
       
     </Tabs>
   );

@@ -10,8 +10,8 @@ import {
 const genAI = new GoogleGenerativeAI(process.env.EXPO_PUBLIC_GEMINI_API_KEY || '');
 
 // Gemini models - using correct model names
-const textModel = genAI.getGenerativeModel({ model: 'gemini-1.5-pro' });
-const visionModel = genAI.getGenerativeModel({ model: 'gemini-1.5-pro' });
+const textModel = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+const visionModel = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
 
 interface RecipeImagePrompt {
   recipeName: string;
@@ -409,7 +409,7 @@ export async function generateEnhancedRecipe(
         aiGenerated: true,
         roycoEnhanced: true,
         sponsoredProducts: recipeData.sponsoredProducts || [],
-        aiModel: 'gemini-1.5-pro',
+        aiModel: 'gemini-2.5-pro',
         createdAt: new Date().toISOString(),
         generatedAt: new Date().toISOString(),
         isAIGenerated: true,
@@ -433,7 +433,7 @@ export async function generateEnhancedRecipe(
         id: `ai-fallback-${Date.now()}`,
         aiGenerated: true,
         roycoEnhanced: true,
-        aiModel: 'gemini-1.5-pro',
+        aiModel: 'gemini-2.5-pro',
         createdAt: new Date().toISOString(),
         generatedAt: new Date().toISOString(),
         isAIGenerated: true,

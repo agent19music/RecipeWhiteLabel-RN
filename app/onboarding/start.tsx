@@ -15,7 +15,7 @@ import { track } from '../../utils/analytics';
 // Removed unused Dimensions variables
 
 export default function OnboardingStart(){
-  const { palette } = useTheme();
+  const { palette, isDark } = useTheme();
   const router = useRouter();
   
   // Animation values
@@ -68,12 +68,11 @@ export default function OnboardingStart(){
         source={require('../../assets/images/splash.png')}
         style={StyleSheet.absoluteFillObject}
         resizeMode="cover"
-        blurRadius={8}
+        blurRadius={isDark ? 15 : 10}
       >
-        {/* Dark overlay for better readability */}
-        <View style={[styles.overlay, { backgroundColor: 'rgba(0, 0, 0, 0.7)' }]} />
-        {/* Theme overlay for consistency */}
-        <View style={[styles.overlay, { backgroundColor: palette.bg + '40' }]} />
+        <View style={[styles.overlay, { 
+          backgroundColor: isDark ? 'rgba(0, 0, 0, 0.9)' : 'rgba(255, 255, 255, 0.94)' 
+        }]} />
       </ImageBackground>
       
       <View style={styles.content}>
@@ -198,11 +197,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: theme.space.xl,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 8,
   },
   title: {
     fontSize: 32,

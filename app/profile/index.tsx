@@ -15,6 +15,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { Colors } from '@/constants/Colors';
+import { useTheme } from '@/theme';
+import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { useAuth } from '@/context/AuthContext';
 import * as ImagePicker from 'expo-image-picker';
 import * as Haptics from 'expo-haptics';
@@ -22,12 +24,12 @@ import { supabase } from '@/lib/supabase';
 
 export default function ProfileScreen() {
   const router = useRouter();
+  const { palette, isDark } = useTheme();
   const { user, signOut } = useAuth();
   
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState(user?.user_metadata?.avatar_url || null);
   const [notifications, setNotifications] = useState(true);
-  const [darkMode, setDarkMode] = useState(false);
 
   // Avatar upload functionality
   const uploadAvatar = async () => {
@@ -105,8 +107,10 @@ export default function ProfileScreen() {
     followingCount: 0,
     level: user ? 'Home Chef' : 'Guest',
     points: 0,
-  };  return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+  };
+
+  return (
+    <SafeAreaView style={[styles.container, { backgroundColor: palette.bg }]} edges={['top']}>
       <ScrollView 
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
@@ -114,12 +118,12 @@ export default function ProfileScreen() {
         {/* Header */}
         <View style={styles.header}>
           <GlassmorphicBackButton />
-          <Text style={styles.headerTitle}>Profile</Text>
+          <Text style={[styles.headerTitle, { color: palette.text }]}>Profile</Text>
           <View style={styles.headerSpacer} />
         </View>
 
         {/* Profile Card */}
-        <View style={styles.profileCard}>
+        <View style={[styles.profileCard, { backgroundColor: palette.card, shadowColor: isDark ? '#FFFFFF' : '#000000', shadowOpacity: isDark ? 0.05 : 0.1 }]}>
           <View style={styles.profileHeader}>
             <View style={styles.avatarSection}>
               <TouchableOpacity 
@@ -144,11 +148,11 @@ export default function ProfileScreen() {
               </TouchableOpacity>
               
               <View style={styles.profileInfo}>
-                <Text style={styles.userName}>{userData.name}</Text>
-                <Text style={styles.userEmail}>{userData.email}</Text>
+                <Text style={[styles.userName, { color: palette.text }]}>{userData.name}</Text>
+                <Text style={[styles.userEmail, { color: palette.subtext }]}>{userData.email}</Text>
                 <View style={styles.levelBadge}>
                   <MaterialCommunityIcons name="chef-hat" size={14} color={Colors.primary} />
-                  <Text style={styles.levelText}>{userData.level}</Text>
+                  <Text style={[styles.levelText, { color: palette.primary }]}>{userData.level}</Text>
                 </View>
               </View>
             </View>
@@ -156,18 +160,18 @@ export default function ProfileScreen() {
             {/* Stats Row */}
             <View style={styles.statsRow}>
               <View style={styles.statItem}>
-                <Text style={styles.statNumber}>{userData.recipesCount}</Text>
-                <Text style={styles.statLabel}>Recipes</Text>
+                <Text style={[styles.statNumber, { color: palette.text }]}>{userData.recipesCount}</Text>
+                <Text style={[styles.statLabel, { color: palette.subtext }]}>Recipes</Text>
               </View>
-              <View style={styles.statDivider} />
+              <View style={[styles.statDivider, { backgroundColor: palette.border }]} />
               <View style={styles.statItem}>
-                <Text style={styles.statNumber}>{userData.followersCount}</Text>
-                <Text style={styles.statLabel}>Followers</Text>
+                <Text style={[styles.statNumber, { color: palette.text }]}>{userData.followersCount}</Text>
+                <Text style={[styles.statLabel, { color: palette.subtext }]}>Followers</Text>
               </View>
-              <View style={styles.statDivider} />
+              <View style={[styles.statDivider, { backgroundColor: palette.border }]} />
               <View style={styles.statItem}>
-                <Text style={styles.statNumber}>{userData.followingCount}</Text>
-                <Text style={styles.statLabel}>Following</Text>
+                <Text style={[styles.statNumber, { color: palette.text }]}>{userData.followingCount}</Text>
+                <Text style={[styles.statLabel, { color: palette.subtext }]}>Following</Text>
               </View>
             </View>
           </View>
@@ -175,60 +179,60 @@ export default function ProfileScreen() {
 
         {/* Quick Actions */}
         <View style={styles.quickActionsSection}>
-          <Text style={styles.sectionTitle}>Quick Actions</Text>
+          <Text style={[styles.sectionTitle, { color: palette.text }]}>Quick Actions</Text>
           <View style={styles.quickActionsGrid}>
-            <TouchableOpacity style={styles.quickAction}>
+            <TouchableOpacity style={[styles.quickAction, { backgroundColor: palette.card }]}>
               <View style={styles.quickActionIcon}>
-                <Ionicons name="bookmark-outline" size={24} color={Colors.primary} />
+                <Ionicons name="bookmark-outline" size={24} color={palette.primary} />
               </View>
-              <Text style={styles.quickActionText}>Saved</Text>
+              <Text style={[styles.quickActionText, { color: palette.text }]}>Saved</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.quickAction}>
+            <TouchableOpacity style={[styles.quickAction, { backgroundColor: palette.card }]}>
               <View style={styles.quickActionIcon}>
-                <Ionicons name="restaurant-outline" size={24} color={Colors.primary} />
+                <Ionicons name="restaurant-outline" size={24} color={palette.primary} />
               </View>
-              <Text style={styles.quickActionText}>My Recipes</Text>
+              <Text style={[styles.quickActionText, { color: palette.text }]}>My Recipes</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.quickAction}>
+            <TouchableOpacity style={[styles.quickAction, { backgroundColor: palette.card }]}>
               <View style={styles.quickActionIcon}>
-                <Ionicons name="trophy-outline" size={24} color={Colors.primary} />
+                <Ionicons name="trophy-outline" size={24} color={palette.primary} />
               </View>
-              <Text style={styles.quickActionText}>Achievements</Text>
+              <Text style={[styles.quickActionText, { color: palette.text }]}>Achievements</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.quickAction}>
+            <TouchableOpacity style={[styles.quickAction, { backgroundColor: palette.card }]}>
               <View style={styles.quickActionIcon}>
-                <Ionicons name="settings-outline" size={24} color={Colors.primary} />
+                <Ionicons name="settings-outline" size={24} color={palette.primary} />
               </View>
-              <Text style={styles.quickActionText}>Settings</Text>
+              <Text style={[styles.quickActionText, { color: palette.text }]}>Settings</Text>
             </TouchableOpacity>
           </View>
         </View>
 
         {/* Essential Settings */}
         <View style={styles.settingsSection}>
-          <Text style={styles.sectionTitle}>Preferences</Text>
-          <View style={styles.settingsCard}>
+          <Text style={[styles.sectionTitle, { color: palette.text }]}>Preferences</Text>
+          <View style={[styles.settingsCard, { backgroundColor: palette.card }]}>
             <TouchableOpacity style={styles.settingItem} onPress={() => router.push('/onboarding/diet')}>
               <View style={styles.settingLeft}>
-                <MaterialIcons name="restaurant" size={22} color={Colors.text.secondary} />
+                <MaterialIcons name="restaurant" size={22} color={palette.subtext} />
                 <View style={styles.settingText}>
-                  <Text style={styles.settingTitle}>Dietary Preferences</Text>
-                  <Text style={styles.settingSubtitle}>
+                  <Text style={[styles.settingTitle, { color: palette.text }]}>Dietary Preferences</Text>
+                  <Text style={[styles.settingSubtitle, { color: palette.subtext }]}>
                     Not set
                   </Text>
                 </View>
               </View>
-              <Ionicons name="chevron-forward" size={18} color={Colors.text.tertiary} />
+              <Ionicons name="chevron-forward" size={18} color={palette.subtext} />
             </TouchableOpacity>
             
-            <View style={styles.divider} />
+            <View style={[styles.divider, { backgroundColor: palette.border }]} />
             
             <View style={styles.settingItem}>
               <View style={styles.settingLeft}>
-                <MaterialIcons name="notifications" size={22} color={Colors.text.secondary} />
+                <MaterialIcons name="notifications" size={22} color={palette.subtext} />
                 <View style={styles.settingText}>
-                  <Text style={styles.settingTitle}>Notifications</Text>
-                  <Text style={styles.settingSubtitle}>
+                  <Text style={[styles.settingTitle, { color: palette.text }]}>Notifications</Text>
+                  <Text style={[styles.settingSubtitle, { color: palette.subtext }]}>
                     {notifications ? 'Enabled' : 'Disabled'}
                   </Text>
                 </View>
@@ -236,56 +240,51 @@ export default function ProfileScreen() {
               <Switch
                 value={notifications}
                 onValueChange={setNotifications}
-                trackColor={{ false: Colors.gray[300], true: Colors.primary }}
-                thumbColor={notifications ? Colors.white : Colors.gray[100]}
+                trackColor={{ false: palette.border, true: palette.primary }}
+                thumbColor={notifications ? Colors.white : palette.subtext}
               />
             </View>
             
-            <View style={styles.divider} />
+            <View style={[styles.divider, { backgroundColor: palette.border }]} />
             
             <View style={styles.settingItem}>
               <View style={styles.settingLeft}>
-                <MaterialIcons name="dark-mode" size={22} color={Colors.text.secondary} />
+                <MaterialIcons name="dark-mode" size={22} color={palette.subtext} />
                 <View style={styles.settingText}>
-                  <Text style={styles.settingTitle}>Dark Mode</Text>
-                  <Text style={styles.settingSubtitle}>
-                    {darkMode ? 'On' : 'Off'}
+                  <Text style={[styles.settingTitle, { color: palette.text }]}>Theme</Text>
+                  <Text style={[styles.settingSubtitle, { color: palette.subtext }]}>
+                    Choose your preferred theme
                   </Text>
                 </View>
               </View>
-              <Switch
-                value={darkMode}
-                onValueChange={setDarkMode}
-                trackColor={{ false: Colors.gray[300], true: Colors.primary }}
-                thumbColor={darkMode ? Colors.white : Colors.gray[100]}
-              />
+              <ThemeToggle variant="menu" size="sm" />
             </View>
           </View>
         </View>
 
         {/* Account Actions */}
         <View style={styles.settingsSection}>
-          <Text style={styles.sectionTitle}>Account</Text>
-          <View style={styles.settingsCard}>
+          <Text style={[styles.sectionTitle, { color: palette.text }]}>Account</Text>
+          <View style={[styles.settingsCard, { backgroundColor: palette.card }]}>
             <TouchableOpacity style={styles.settingItem}>
               <View style={styles.settingLeft}>
-                <MaterialIcons name="person" size={22} color={Colors.text.secondary} />
-                <Text style={styles.settingTitle}>Edit Profile</Text>
+                <MaterialIcons name="person" size={22} color={palette.subtext} />
+                <Text style={[styles.settingTitle, { color: palette.text }]}>Edit Profile</Text>
               </View>
-              <Ionicons name="chevron-forward" size={18} color={Colors.text.tertiary} />
+              <Ionicons name="chevron-forward" size={18} color={palette.subtext} />
             </TouchableOpacity>
             
-            <View style={styles.divider} />
+            <View style={[styles.divider, { backgroundColor: palette.border }]} />
             
             <TouchableOpacity style={styles.settingItem}>
               <View style={styles.settingLeft}>
-                <MaterialIcons name="help" size={22} color={Colors.text.secondary} />
-                <Text style={styles.settingTitle}>Help & Support</Text>
+                <MaterialIcons name="help" size={22} color={palette.subtext} />
+                <Text style={[styles.settingTitle, { color: palette.text }]}>Help & Support</Text>
               </View>
-              <Ionicons name="chevron-forward" size={18} color={Colors.text.tertiary} />
+              <Ionicons name="chevron-forward" size={18} color={palette.subtext} />
             </TouchableOpacity>
             
-            <View style={styles.divider} />
+            <View style={[styles.divider, { backgroundColor: palette.border }]} />
             
             <TouchableOpacity 
               style={styles.settingItem}
@@ -299,8 +298,8 @@ export default function ProfileScreen() {
               }}
             >
               <View style={styles.settingLeft}>
-                <MaterialIcons name="logout" size={22} color={Colors.error} />
-                <Text style={[styles.settingTitle, { color: Colors.error }]}>Sign Out</Text>
+                <MaterialIcons name="logout" size={22} color={palette.error} />
+                <Text style={[styles.settingTitle, { color: palette.error }]}>Sign Out</Text>
               </View>
             </TouchableOpacity>
           </View>

@@ -27,7 +27,7 @@ import { useDialog } from '@/hooks/useDialog';
 // Removed unused Dimensions variables
 
 export default function SignInScreen() {
-  const { palette } = useTheme();
+  const { palette, isDark, glassMorphism } = useTheme();
   const router = useRouter();
   const { signInWithGoogle, signInWithEmail, signUpWithEmail, resetPassword, loading, error, } = useAuth();
 
@@ -172,17 +172,16 @@ export default function SignInScreen() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: palette.bg }]} edges={['top', 'bottom']}>
-      {/* Background Image */}
+      {/* Background Image with adaptive blur */}
       <ImageBackground
         source={require('../../assets/images/splash.png')}
         style={StyleSheet.absoluteFillObject}
         resizeMode="cover"
-        blurRadius={2}
+        blurRadius={isDark ? 15 : 10}
       >
-        {/* Dark overlay for better readability */}
-        <View style={[styles.overlay, { backgroundColor: 'rgba(255	253	208)' }]} />
-        {/* Theme overlay for consistency */}
-        {/* <View style={[styles.overlay, { backgroundColor: palette.bg + '40' }]} /> */}
+        <View style={[styles.overlay, { 
+          backgroundColor: isDark ? 'rgba(0, 0, 0, 0.9)' : 'rgba(255, 255, 255, 0.94)' 
+        }]} />
       </ImageBackground>
 
       <KeyboardAvoidingView
@@ -238,7 +237,13 @@ export default function SignInScreen() {
           >
             {/* Google Sign In Button */}
             <TouchableOpacity
-              style={[styles.googleButton, { borderColor: palette.border }]}
+              style={[
+                styles.googleButton,
+                {
+                  backgroundColor: isDark ? palette.surface : palette.cardBg,
+                  borderColor: palette.border,
+                }
+              ]}
               onPress={handleGoogleSignIn}
               disabled={loading}
             >
@@ -265,12 +270,18 @@ export default function SignInScreen() {
               {/* Full Name Input (Sign Up Only) */}
               {isSignUp && (
                 <View style={styles.inputContainer}>
-                  <View style={[styles.inputWrapper, { backgroundColor: palette.card, borderColor: palette.border }]}>
+                  <View style={[
+                    styles.inputWrapper,
+                    {
+                      backgroundColor: isDark ? palette.inputBg : palette.surface,
+                      borderColor: palette.border,
+                    }
+                  ]}>
                     <Ionicons name="person-outline" size={20} color={palette.subtext} />
                     <TextInput
                       style={[styles.input, { color: palette.text }]}
                       placeholder="Full Name"
-                      placeholderTextColor={palette.subtext}
+                      placeholderTextColor={palette.placeholder}
                       value={fullName}
                       onChangeText={setFullName}
                       autoComplete="name"
@@ -282,12 +293,18 @@ export default function SignInScreen() {
 
               {/* Email Input */}
               <View style={styles.inputContainer}>
-                <View style={[styles.inputWrapper, { backgroundColor: palette.card, borderColor: palette.border }]}>
+                <View style={[
+                  styles.inputWrapper,
+                  {
+                    backgroundColor: isDark ? palette.inputBg : palette.surface,
+                    borderColor: palette.border,
+                  }
+                ]}>
                   <Ionicons name="mail-outline" size={20} color={palette.subtext} />
                   <TextInput
                     style={[styles.input, { color: palette.text }]}
                     placeholder="Email Address"
-                    placeholderTextColor={palette.subtext}
+                    placeholderTextColor={palette.placeholder}
                     value={email}
                     onChangeText={setEmail}
                     autoComplete="email"
@@ -300,12 +317,18 @@ export default function SignInScreen() {
 
               {/* Password Input */}
               <View style={styles.inputContainer}>
-                <View style={[styles.inputWrapper, { backgroundColor: palette.card, borderColor: palette.border }]}>
+                <View style={[
+                  styles.inputWrapper,
+                  {
+                    backgroundColor: isDark ? palette.inputBg : palette.surface,
+                    borderColor: palette.border,
+                  }
+                ]}>
                   <Ionicons name="lock-closed-outline" size={20} color={palette.subtext} />
                   <TextInput
                     style={[styles.input, { color: palette.text }]}
                     placeholder="Password"
-                    placeholderTextColor={palette.subtext}
+                    placeholderTextColor={palette.placeholder}
                     value={password}
                     onChangeText={setPassword}
                     secureTextEntry={!showPassword}
@@ -328,12 +351,18 @@ export default function SignInScreen() {
               {/* Confirm Password Input (Sign Up Only) */}
               {isSignUp && (
                 <View style={styles.inputContainer}>
-                  <View style={[styles.inputWrapper, { backgroundColor: palette.card, borderColor: palette.border }]}>
+                  <View style={[
+                    styles.inputWrapper,
+                    {
+                      backgroundColor: isDark ? palette.inputBg : palette.surface,
+                      borderColor: palette.border,
+                    }
+                  ]}>
                     <Ionicons name="lock-closed-outline" size={20} color={palette.subtext} />
                     <TextInput
                       style={[styles.input, { color: palette.text }]}
                       placeholder="Confirm Password"
-                      placeholderTextColor={palette.subtext}
+                      placeholderTextColor={palette.placeholder}
                       value={confirmPassword}
                       onChangeText={setConfirmPassword}
                       secureTextEntry={!showConfirmPassword}
@@ -420,12 +449,18 @@ export default function SignInScreen() {
         onRequestClose={() => setShowForgotPassword(false)}
       >
         <View style={styles.modalOverlay}>
-          <BlurView intensity={20} style={StyleSheet.absoluteFillObject} />
+          <BlurView intensity={glassMorphism.blur.heavy} style={StyleSheet.absoluteFillObject} />
           <KeyboardAvoidingView
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
             style={styles.modalKeyboardView}
           >
-            <View style={[styles.modalContainer, { backgroundColor: palette.card }]}>
+            <View style={[
+              styles.modalContainer,
+              {
+                backgroundColor: isDark ? palette.card : palette.bg,
+                borderColor: palette.border,
+              }
+            ]}>
               <Text style={[styles.modalTitle, { color: palette.text }]}>
                 Reset Password
               </Text>
@@ -433,12 +468,18 @@ export default function SignInScreen() {
                 Enter your email address and we&apos;ll send you instructions to reset your password.
               </Text>
               
-              <View style={[styles.inputWrapper, { backgroundColor: palette.bg, borderColor: palette.border }]}>
+              <View style={[
+                styles.inputWrapper,
+                {
+                  backgroundColor: isDark ? palette.inputBg : palette.surface,
+                  borderColor: palette.border,
+                }
+              ]}>
                 <Ionicons name="mail-outline" size={20} color={palette.subtext} />
                 <TextInput
                   style={[styles.input, { color: palette.text }]}
                   placeholder="Email Address"
-                  placeholderTextColor={palette.subtext}
+                  placeholderTextColor={palette.placeholder}
                   value={resetEmail}
                   onChangeText={setResetEmail}
                   autoComplete="email"
@@ -497,7 +538,6 @@ const styles = StyleSheet.create({
   },
   overlay: {
     ...StyleSheet.absoluteFillObject,
-    
   },
   keyboardView: {
     flex: 1,
@@ -522,11 +562,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: theme.space.xl,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 8,
   },
   title: {
     fontSize: 28,
@@ -653,7 +688,6 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.4)',
   },
   modalKeyboardView: {
     width: '100%',
@@ -664,10 +698,9 @@ const styles = StyleSheet.create({
     width: '85%',
     maxWidth: 400,
     borderRadius: 24,
+    borderWidth: 1,
     padding: theme.space.xl,
-    shadowColor: '#000',
     shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.1,
     shadowRadius: 24,
     elevation: 8,
   },

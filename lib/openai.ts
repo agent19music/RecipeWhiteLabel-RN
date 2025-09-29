@@ -54,7 +54,7 @@ export async function analyzeGroceryImage(base64Image: string): Promise<GroceryD
         'Authorization': `Bearer ${OPENAI_API_KEY}`,
       },
       body: JSON.stringify({
-        model: 'gpt-4-vision-preview',
+        model: 'gpt-4o-mini',
         messages: [
           {
             role: 'system',
@@ -68,16 +68,19 @@ export async function analyzeGroceryImage(base64Image: string): Promise<GroceryD
                - quantity: estimated count if visible
                - unit: appropriate unit (pieces, kg, liters, etc.)
                - confidence: 0-1 score of detection certainty
-            3. Return results as JSON array
-            4. If no food items detected, return empty array
-            5. Be specific with names (e.g., "Green Apples" not just "Apples")`,
+            3. Return results as a valid JSON array only, no extra text
+            4. If no food items detected, return empty array []
+            5. Be specific with names (e.g., "Green Apples" not just "Apples")
+            
+            Response format must be a JSON array like:
+            [{"name":"Green Apples","category":"produce","quantity":6,"unit":"pieces","confidence":0.9}]`,
           },
           {
             role: 'user',
             content: [
               {
                 type: 'text',
-                text: 'Identify all grocery and food items in this image. Return only food products, ignore everything else.',
+                text: 'Identify all grocery and food items in this image. Return ONLY a JSON array with the detected items, no other text.',
               },
               {
                 type: 'image_url',
@@ -107,13 +110,23 @@ export async function analyzeGroceryImage(base64Image: string): Promise<GroceryD
 
     // Parse the JSON response
     try {
-      const items = JSON.parse(content) as GroceryItem[];
+      // Clean the response - sometimes GPT adds markdown formatting
+      const cleanContent = content.replace(/```json\n?|```\n?/g, '').trim();
+      const items = JSON.parse(cleanContent) as GroceryItem[];
       
-      // Filter out non-food items based on confidence and add expiry estimates
+      // Validate and filter items
       const validItems = items
-        .filter(item => item.confidence >= 0.6)
+        .filter(item => 
+          item && 
+          typeof item === 'object' && 
+          item.name && 
+          item.category &&
+          item.confidence >= 0.5
+        )
         .map(item => ({
           ...item,
+          quantity: item.quantity || 1,
+          unit: item.unit || 'piece',
           expiryEstimate: CATEGORY_EXPIRY_DAYS[item.category] || 30,
         }));
 

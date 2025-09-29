@@ -2,22 +2,22 @@ import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Platform, Text, TouchableOpacity, View } from 'react-native';
-import Button from '../../components/Button';
-import LoadingSpinner from '../../components/LoadingSpinner';
-import foodDetectionService from '../../services/foodDetection';
-import { theme, useTheme } from '../../theme';
+import Button from '../../../components/Button';
+import LoadingSpinner from '../../../components/LoadingSpinner';
+import foodDetectionService from '../../../services/foodDetection';
+import { theme, useTheme } from '../../../theme';
 import {
   detectIngredientsFromImage,
   generateAIRecipe,
   generateRecipeVariations
-} from '../../utils/ai-enhanced';
-import { track } from '../../utils/analytics';
+} from '../../../utils/ai-enhanced';
+import { track } from '../../../utils/analytics';
 
 import Dialog from '@/components/Dialog';
 import GlassmorphicBackButton from '@/components/GlassmorphicBackButton';
 import { useDialog } from '@/hooks/useDialog';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import IngredientsModal from '../../components/IngredientsModal';
+import IngredientsModal from '../../../components/IngredientsModal';
 
 export default function CameraScreen(){
   const { palette } = useTheme();

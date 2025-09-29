@@ -5,6 +5,8 @@ import {
   getEnhancedMealsByTimeOfDay,
   getEnhancedQuickRecipes
 } from '@/data/enhanced-recipes';
+import { useTheme } from '@/theme';
+import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
@@ -35,6 +37,7 @@ const categories = [
 
 export default function HomeScreen() {
   const router = useRouter();
+  const { palette, isDark } = useTheme();
   const [selectedCategory, setSelectedCategory] = useState('1');
   const [searchQuery, setSearchQuery] = useState('');
   const [timeBasedMeals, setTimeBasedMeals] = useState<Recipe[]>([]);
@@ -170,12 +173,12 @@ export default function HomeScreen() {
       <Ionicons 
         name={item.icon as any} 
         size={24} 
-        color={selectedCategory === item.id ? Colors.white : Colors.gray[600]}
+        color={selectedCategory === item.id ? Colors.white : palette.subtext}
       />
       <Text style={[
         styles.categoryText,
         selectedCategory === item.id && styles.categoryTextActive,
-        { color: selectedCategory === item.id ? Colors.white : Colors.text.secondary }
+        { color: selectedCategory === item.id ? Colors.white : palette.text }
       ]}>
         {item.name}
       </Text>
@@ -193,12 +196,12 @@ export default function HomeScreen() {
         <Text style={styles.recipeTitle} numberOfLines={2}>{item.title}</Text>
         <View style={styles.recipeMetaContainer}>
           <View style={styles.recipeMeta}>
-            <Ionicons name="time-outline" size={14} color={Colors.gray[500]} />
-            <Text style={[styles.recipeMetaText, { color: Colors.text.tertiary }]}>{item.time}</Text>
+            <Ionicons name="time-outline" size={14} color={palette.subtext} />
+            <Text style={[styles.recipeMetaText, { color: palette.subtext }]}>{item.time}</Text>
           </View>
           <View style={styles.recipeMeta}>
-            <Ionicons name="fitness-outline" size={14} color={Colors.gray[500]} />
-            <Text style={[styles.recipeMetaText, { color: Colors.text.tertiary }]}>{item.difficulty}</Text>
+            <Ionicons name="fitness-outline" size={14} color={palette.subtext} />
+            <Text style={[styles.recipeMetaText, { color: palette.subtext }]}>{item.difficulty}</Text>
           </View>
         </View>
       </View>
@@ -219,8 +222,8 @@ export default function HomeScreen() {
     </TouchableOpacity>
   );
 
-  // Create styles
-  const styles = createStyles();
+  // Create theme-aware styles
+  const styles = createStyles(palette, isDark);
   
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -245,11 +248,12 @@ export default function HomeScreen() {
               <Text style={styles.userName}>What would you like to cook today?</Text>
             </View>
             <View style={styles.headerActions}>
+              <ThemeToggle size="sm" style={{ marginRight: 8 }} />
               <TouchableOpacity 
                 style={styles.headerButton}
                 onPress={() => router.push('/profile')}
               >
-                <Ionicons name="person-circle-outline" size={32} color={Colors.text.primary} />
+                <Ionicons name="person-circle-outline" size={32} color={palette.text} />
               </TouchableOpacity>
             </View>
           </View>
@@ -257,17 +261,17 @@ export default function HomeScreen() {
 
         {/* Search Bar */}
         <View style={styles.searchContainer}>
-          <View style={styles.searchBar}>
-            <Ionicons name="search" size={20} color={Colors.gray[400]} />
+          <View style={[styles.searchBar, { backgroundColor: palette.surface }]}>
+            <Ionicons name="search" size={20} color={palette.subtext} />
             <TextInput
-              style={styles.searchInput}
+              style={[styles.searchInput, { color: palette.text }]}
               placeholder="Search recipes..."
-              placeholderTextColor={Colors.gray[400]}
+              placeholderTextColor={palette.subtext}
               value={searchQuery}
               onChangeText={setSearchQuery}
             />
             <TouchableOpacity>
-              <MaterialCommunityIcons name="tune-variant" size={20} color={Colors.gray[600]} />
+              <MaterialCommunityIcons name="tune-variant" size={20} color={palette.text} />
             </TouchableOpacity>
           </View>
         </View>
@@ -321,8 +325,8 @@ export default function HomeScreen() {
           ) : (
           <View style={styles.section}>
             <View style={styles.emptyContainer}>
-              <Ionicons name="search-outline" size={48} color={Colors.gray[400]} />
-              <Text style={[styles.emptyText, { color: Colors.text.secondary }]}>No recipes found for this filter</Text>
+              <Ionicons name="search-outline" size={48} color={palette.subtext} />
+              <Text style={[styles.emptyText, { color: palette.subtext }]}>No recipes found for this filter</Text>
             </View>
           </View>
         )}
@@ -447,10 +451,10 @@ export default function HomeScreen() {
   );
 }
 
-  const createStyles = () => StyleSheet.create({
+  const createStyles = (palette: any, isDark: boolean) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: palette.bg,
   },
   scrollView: {
     flex: 1,
@@ -468,18 +472,18 @@ export default function HomeScreen() {
   greeting: {
     fontSize: 28,
     fontWeight: '700',
-    color: Colors.text.primary,
+    color: palette.text,
     marginBottom: 4,
   },
   userName: {
     fontSize: 16,
-    color: Colors.text.secondary,
+    color: palette.subtext,
   },
   notificationButton: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: Colors.surface,
+    backgroundColor: palette.surface,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -495,12 +499,11 @@ export default function HomeScreen() {
   searchContainer: {
     paddingHorizontal: 20,
     paddingBottom: 15,
-    backgroundColor: Colors.background,
+    backgroundColor: palette.bg,
   },
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.surface,
     borderRadius: 16,
     paddingHorizontal: 16,
     height: 52,
@@ -509,7 +512,6 @@ export default function HomeScreen() {
   searchInput: {
     flex: 1,
     fontSize: 16,
-    color: Colors.text.primary,
   },
   categoriesContainer: {
     paddingVertical: 15,
@@ -524,17 +526,16 @@ export default function HomeScreen() {
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 20,
-    backgroundColor: Colors.surface,
+    backgroundColor: palette.surface,
     gap: 8,
     marginRight: 10,
   },
   categoryItemActive: {
-    backgroundColor: Colors.primary,
+    backgroundColor: palette.primary,
   },
   categoryText: {
     fontSize: 14,
     fontWeight: '600',
-    color: Colors.text.primary,
   },
   categoryTextActive: {
     color: Colors.white,
@@ -552,11 +553,11 @@ export default function HomeScreen() {
   sectionTitle: {
     fontSize: 22,
     fontWeight: '700',
-    color: Colors.text.primary,
+    color: palette.text,
   },
   seeAllText: {
     fontSize: 14,
-    color: Colors.primary,
+    color: palette.primary,
     fontWeight: '600',
   },
   recipesList: {
@@ -565,12 +566,12 @@ export default function HomeScreen() {
   recipeCard: {
     width: width * 0.7,
     marginRight: 16,
-    backgroundColor: Colors.card,
+    backgroundColor: palette.card,
     borderRadius: 20,
     overflow: 'hidden',
-    shadowColor: Colors.shadow.medium,
+    shadowColor: isDark ? '#FFFFFF' : '#000000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
+    shadowOpacity: isDark ? 0.05 : 0.1,
     shadowRadius: 12,
     elevation: 5,
   },
@@ -584,7 +585,7 @@ export default function HomeScreen() {
   recipeTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: Colors.text.primary,
+    color: palette.text,
     marginBottom: 8,
   },
   recipeMetaContainer: {
@@ -598,7 +599,6 @@ export default function HomeScreen() {
   },
   recipeMetaText: {
     fontSize: 13,
-    color: Colors.text.tertiary,
   },
   quickRecipeCard: {
     width: width * 0.35,
@@ -613,7 +613,7 @@ export default function HomeScreen() {
     position: 'absolute',
     top: 8,
     right: 8,
-    backgroundColor: Colors.white,
+    backgroundColor: palette.card,
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 8,
@@ -621,12 +621,12 @@ export default function HomeScreen() {
   quickRecipeTime: {
     fontSize: 11,
     fontWeight: '600',
-    color: Colors.text.primary,
+    color: palette.text,
   },
   quickRecipeTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: Colors.text.primary,
+    color: palette.text,
     marginTop: 8,
   },
   aiCard: {
@@ -739,7 +739,6 @@ export default function HomeScreen() {
   },
   emptyText: {
     fontSize: 16,
-    color: Colors.text.secondary,
     marginTop: 16,
   },
   fab: {

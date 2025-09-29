@@ -4,12 +4,12 @@ import { Colors } from '@/constants/Colors';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-import Button from '../../components/Button';
-import Chip from '../../components/Chip';
-import { popularIngredients, recipes as seedRecipes } from '../../data/seed';
-import { theme, useTheme } from '../../theme';
-import { generateAIRecipe } from '../../utils/ai-enhanced';
-import { track } from '../../utils/analytics';
+import Button from '../../../components/Button';
+import Chip from '../../../components/Chip';
+import { popularIngredients, recipes as seedRecipes } from '../../../data/seed';
+import { theme, useTheme } from '../../../theme';
+import { generateAIRecipe } from '../../../utils/ai-enhanced';
+import { track } from '../../../utils/analytics';
 
 import GlassmorphicBackButton from '@/components/GlassmorphicBackButton';
 

@@ -16,13 +16,13 @@ import {
     Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import PantryAddModal from '../../components/PantryAddModal';
-import PantryItemActionsModal from '../../components/PantryItemActionsModal';
-import { PantryItem } from '../../data/types';
-import { track } from '../../utils/analytics';
-import { useAuth } from '../../context/AuthContext';
-import { pantryService, SupabasePantryItem } from '../../services/pantryService';
-import { supabase } from '../../lib/supabase';
+import PantryAddModal from '../../../components/PantryAddModal';
+import PantryItemActionsModal from '../../../components/PantryItemActionsModal';
+import { PantryItem } from '../../../data/types';
+import { track } from '../../../utils/analytics';
+import { useAuth } from '../../../context/AuthContext';
+import { pantryService, SupabasePantryItem } from '../../../services/pantryService';
+import { supabase } from '../../../lib/supabase';
 
 export default function PantryScreen() {
   const router = useRouter();

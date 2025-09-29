@@ -127,10 +127,10 @@ export async function analyzeIngredientsFromImage(
       });
     } else {
       // For mobile, use FileSystem
-      base64Image = await FileSystem.readAsStringAsync(imageUri, {
-        encoding: FileSystem.EncodingType.Base64, 
+      const fileContent = await FileSystem.readAsStringAsync(imageUri, {
+        encoding: FileSystem.EncodingType.Base64,
       });
-      base64Image = `data:image/jpeg;base64,${base64Image}`;
+      base64Image = `data:image/jpeg;base64,${fileContent}`;
     }
 
     // Call OpenAI Vision API
