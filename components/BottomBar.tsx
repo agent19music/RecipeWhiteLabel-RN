@@ -1,15 +1,21 @@
-import {
-  View,
-  StyleSheet,
-  Pressable,
-  ViewStyle,
-  useWindowDimensions,
-  BackHandler,
-  TextInput,
-  ScrollView,
-} from "react-native";
+import { ThemedText } from "@/components/ThemedText";
+import { useThemeColor } from "@/hooks/useThemeColor";
+import { ClockFading, LucideProps, Search, Star, X } from "lucide-react-native";
 import React, { memo, useEffect, useRef } from "react";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import {
+  BackHandler,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  TextInput,
+  useWindowDimensions,
+  View,
+  ViewStyle,
+} from "react-native";
+import {
+  KeyboardGestureArea,
+  useKeyboardHandler,
+} from "react-native-keyboard-controller";
 import Animated, {
   runOnJS,
   SharedValue,
@@ -20,13 +26,7 @@ import Animated, {
   withSpring,
   withTiming,
 } from "react-native-reanimated";
-import { ClockFading, LucideProps, Search, Star, X } from "lucide-react-native";
-import { useThemeColor } from "@/hooks/useThemeColor";
-import { ThemedText } from "@/components/ThemedText";
-import {
-  KeyboardGestureArea,
-  useKeyboardHandler,
-} from "react-native-keyboard-controller";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 

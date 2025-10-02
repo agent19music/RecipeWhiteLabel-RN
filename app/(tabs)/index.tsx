@@ -1,14 +1,15 @@
+import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { Colors } from '@/constants/Colors';
-import { Recipe } from '@/data/types';
 import {
   getEnhancedFeaturedRecipes,
   getEnhancedMealsByTimeOfDay,
   getEnhancedQuickRecipes
 } from '@/data/enhanced-recipes';
+import { Recipe } from '@/data/types';
 import { useTheme } from '@/theme';
-import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { ClockIcon, FadersHorizontalIcon, ForkKnifeIcon, GaugeIcon, SquaresFourIcon, MagnifyingGlassIcon, MapPinSimpleIcon, MoonIcon, SailboatIcon, SunHorizonIcon, UserIcon } from 'phosphor-react-native';
 import React, { useEffect, useRef, useState } from 'react';
 import {
   Animated,
@@ -27,12 +28,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 const { width } = Dimensions.get('window');
 
 const categories = [
-  { id: '1', name: 'All', icon: 'apps' },
-  { id: '2', name: 'Breakfast', icon: 'sunny' },
-  { id: '3', name: 'Lunch', icon: 'restaurant' },
-  { id: '4', name: 'Dinner', icon: 'moon' },
-  { id: '5', name: 'Kenyan', icon: 'flag' },
-  { id: '6', name: 'Swahili', icon: 'boat' },
+  { id: '1', name: 'All', icon: 'GridNineIcon' },
+  { id: '2', name: 'Breakfast', icon: 'SunHorizonIcon' },
+  { id: '3', name: 'Lunch', icon: 'ForkKnifeIcon' },
+  { id: '4', name: 'Dinner', icon: 'MoonIcon' },
+  { id: '5', name: 'Kenyan', icon: 'MapPinSimpleIcon' },
+  { id: '6', name: 'Swahili', icon: 'SailboatIcon' },
 ];
 
 export default function HomeScreen() {
@@ -162,28 +163,43 @@ export default function HomeScreen() {
     setFilteredRecipes(filtered);
   }, [selectedCategory, searchQuery, allRecipes]);
 
-  const renderCategoryItem = ({ item }: { item: typeof categories[0] }) => (
-    <TouchableOpacity
-      style={[
-        styles.categoryItem,
-        selectedCategory === item.id && styles.categoryItemActive
-      ]}
-      onPress={() => setSelectedCategory(item.id)}
-    >
-      <Ionicons 
-        name={item.icon as any} 
-        size={24} 
-        color={selectedCategory === item.id ? Colors.white : palette.subtext}
-      />
-      <Text style={[
-        styles.categoryText,
-        selectedCategory === item.id && styles.categoryTextActive,
-        { color: selectedCategory === item.id ? Colors.white : palette.text }
-      ]}>
-        {item.name}
-      </Text>
-    </TouchableOpacity>
-  );
+  const renderCategoryItem = ({ item }: { item: typeof categories[0] }) => {
+    const getPhosphorIcon = (iconName: string) => {
+      const iconMap: { [key: string]: React.ComponentType<any> } = {
+        'GridNineIcon': SquaresFourIcon,
+        'SunHorizonIcon': SunHorizonIcon,
+        'ForkKnifeIcon': ForkKnifeIcon,
+        'MoonIcon': MoonIcon,
+        'MapPinSimpleIcon': MapPinSimpleIcon,
+        'SailboatIcon': SailboatIcon,
+      };
+      return iconMap[iconName] || SquaresFourIcon;
+    };
+
+    const IconComponent = getPhosphorIcon(item.icon);
+
+    return (
+      <TouchableOpacity
+        style={[
+          styles.categoryItem,
+          selectedCategory === item.id && styles.categoryItemActive
+        ]}
+        onPress={() => setSelectedCategory(item.id)}
+      >
+        <IconComponent 
+          size={24} 
+          color={selectedCategory === item.id ? Colors.white : palette.subtext}
+        />
+        <Text style={[
+          styles.categoryText,
+          selectedCategory === item.id && styles.categoryTextActive,
+          { color: selectedCategory === item.id ? Colors.white : palette.text }
+        ]}>
+          {item.name}
+        </Text>
+      </TouchableOpacity>
+    );
+  };
 
   const renderRecipeCard = ({ item }: { item: Recipe }) => (
     <TouchableOpacity 
@@ -196,11 +212,11 @@ export default function HomeScreen() {
         <Text style={styles.recipeTitle} numberOfLines={2}>{item.title}</Text>
         <View style={styles.recipeMetaContainer}>
           <View style={styles.recipeMeta}>
-            <Ionicons name="time-outline" size={14} color={palette.subtext} />
+            <ClockIcon size={14} color={palette.subtext} />
             <Text style={[styles.recipeMetaText, { color: palette.subtext }]}>{item.time}</Text>
           </View>
           <View style={styles.recipeMeta}>
-            <Ionicons name="fitness-outline" size={14} color={palette.subtext} />
+            <GaugeIcon size={14} color={palette.subtext} />
             <Text style={[styles.recipeMetaText, { color: palette.subtext }]}>{item.difficulty}</Text>
           </View>
         </View>
@@ -253,7 +269,7 @@ export default function HomeScreen() {
                 style={styles.headerButton}
                 onPress={() => router.push('/profile')}
               >
-                <Ionicons name="person-circle-outline" size={32} color={palette.text} />
+                <UserIcon size={32} color={palette.text} />
               </TouchableOpacity>
             </View>
           </View>
@@ -262,7 +278,7 @@ export default function HomeScreen() {
         {/* Search Bar */}
         <View style={styles.searchContainer}>
           <View style={[styles.searchBar, { backgroundColor: palette.surface }]}>
-            <Ionicons name="search" size={20} color={palette.subtext} />
+            <MagnifyingGlassIcon size={20} color={palette.subtext} />
             <TextInput
               style={[styles.searchInput, { color: palette.text }]}
               placeholder="Search recipes..."
@@ -271,7 +287,7 @@ export default function HomeScreen() {
               onChangeText={setSearchQuery}
             />
             <TouchableOpacity>
-              <MaterialCommunityIcons name="tune-variant" size={20} color={palette.text} />
+              <FadersHorizontalIcon size={20} color={palette.text} />   
             </TouchableOpacity>
           </View>
         </View>

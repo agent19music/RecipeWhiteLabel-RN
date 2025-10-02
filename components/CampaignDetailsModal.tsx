@@ -18,6 +18,7 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { CheckCircleIcon, CircleIcon, CheckIcon, TrophyIcon, UsersIcon,ImagesIcon,UsersThreeIcon } from 'phosphor-react-native';  
 
 const { width, height } = Dimensions.get('window');
 
@@ -170,19 +171,19 @@ export default function CampaignDetailsModal({
             {/* Stats Row */}
             <View style={styles.statsRow}>
               <View style={styles.statBox}>
-                <Ionicons name="people" size={20} color={Colors.text.secondary} />
+                <UsersThreeIcon size={20} color={Colors.text.secondary} />  
                 <Text style={styles.statNumber}>{formatNumber(campaign.participants)}</Text>
                 <Text style={styles.statLabel}>Participants</Text>
-              </View>
+              </View>   
               <View style={styles.statDivider} />
               <View style={styles.statBox}>
-                <Ionicons name="images" size={20} color={Colors.text.secondary} />
+                <ImagesIcon size={20} color={Colors.text.secondary} />  
                 <Text style={styles.statNumber}>{formatNumber(campaign.submissions)}</Text>
                 <Text style={styles.statLabel}>Submissions</Text>
               </View>
               <View style={styles.statDivider} />
               <View style={styles.statBox}>
-                <Ionicons name="trophy" size={20} color={Colors.primary} />
+                <TrophyIcon size={20} color={Colors.primary} />  
                 <Text style={[styles.prizeText, { color: Colors.primary }]}>{campaign.prize}</Text>
                 <Text style={styles.statLabel}>Prize</Text>
               </View>
@@ -213,7 +214,7 @@ export default function CampaignDetailsModal({
                 <Text style={styles.sectionTitle}>Judging Criteria</Text>
                 {campaign.judgesCriteria.map((criteria, index) => (
                   <View key={index} style={styles.criteriaItem}>
-                    <Ionicons name="checkmark-circle" size={16} color={Colors.success} />
+                    <CheckCircleIcon size={16} color={Colors.success} />  
                     <Text style={styles.criteriaText}>{criteria}</Text>
                   </View>
                 ))}

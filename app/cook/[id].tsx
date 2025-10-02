@@ -2,19 +2,28 @@ import ModernButton from '@/components/ModernButton';
 import { Colors } from '@/constants/Colors';
 import { getRecipeById } from '@/data/enhanced-recipes';
 import { RecipeStep } from '@/data/types';
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { useDialog } from '@/hooks/useDialog';
 import * as Haptics from 'expo-haptics';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useEffect, useRef, useState } from 'react';
-import { useDialog } from '@/hooks/useDialog';
 import {
-    Animated,
-    Dimensions,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View
+  CaretLeftIcon,
+  CaretRightIcon,
+  CheckIcon,
+  LightbulbIcon,
+  PauseIcon,
+  PlayIcon,
+  ThermometerIcon,
+  X
+} from 'phosphor-react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import {
+  Animated,
+  Dimensions,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -228,7 +237,7 @@ export default function CookingScreen() {
                           
               style={{ marginLeft: 12 }}
             >
-              <Ionicons name="close" size={24} color={Colors.text.primary} />
+              <X size={24} color={Colors.text.primary} />
             </TouchableOpacity>
           ),
         }} 
@@ -267,11 +276,11 @@ export default function CookingScreen() {
               ]}
               onPress={isTimerActive ? stopTimer : startTimer}
             >
-              <Ionicons 
-                name={isTimerActive ? 'pause' : 'play'} 
-                size={20} 
-                color={Colors.white} 
-              />
+              {isTimerActive ? (
+                <PauseIcon size={20} color={Colors.white} />
+              ) : (
+                <PlayIcon size={20} color={Colors.white} />
+              )}
             </TouchableOpacity>
           </View>
         )}
@@ -293,7 +302,7 @@ export default function CookingScreen() {
                 completedSteps.has(currentStep) && styles.stepNumberCompleted
               ]}>
                 {completedSteps.has(currentStep) ? (
-                  <Ionicons name="checkmark" size={24} color={Colors.white} />
+                  <CheckIcon size={24} color={Colors.white} />
                 ) : (
                   <Text style={styles.stepNumberText}>{currentStep + 1}</Text>
                 )}
@@ -304,7 +313,7 @@ export default function CookingScreen() {
                 )}
                 {currentStepData.temperature && (
                   <View style={styles.temperatureContainer}>
-                    <Ionicons name="thermometer" size={16} color={Colors.error} />
+                    <ThermometerIcon size={16} color={Colors.error} />
                     <Text style={styles.temperatureText}>
                       {currentStepData.temperature.value}°{currentStepData.temperature.unit}
                     </Text>
@@ -319,7 +328,7 @@ export default function CookingScreen() {
             {currentStepData.tips && currentStepData.tips.length > 0 && (
               <View style={styles.tipContainer}>
                 <View style={styles.tipHeader}>
-                  <Ionicons name="bulb" size={18} color={Colors.warning} />
+                  <LightbulbIcon size={18} color={Colors.warning} />
                   <Text style={styles.tipHeaderText}>Pro Tip</Text>
                 </View>
                 {currentStepData.tips.map((tip, index) => (
@@ -337,8 +346,7 @@ export default function CookingScreen() {
             onPress={prevStep}
             disabled={currentStep === 0}
           >
-            <Ionicons 
-              name="chevron-back" 
+            <CaretLeftIcon 
               size={24} 
               color={currentStep === 0 ? Colors.gray[400] : Colors.primary} 
             />
@@ -351,7 +359,7 @@ export default function CookingScreen() {
                 onPress={finishCooking}
                 variant="primary"
                 size="large"
-                icon={<MaterialCommunityIcons name="check-bold" size={20} color={Colors.white} />}
+                icon={<CheckIcon size={20} color={Colors.white} />}
               />
             ) : (
               <ModernButton
@@ -359,7 +367,7 @@ export default function CookingScreen() {
                 onPress={nextStep}
                 variant="primary"
                 size="large"
-                icon={<Ionicons name="chevron-forward" size={20} color={Colors.white} />}
+                icon={<CaretRightIcon size={20} color={Colors.white} />}
               />
             )}
           </View>
@@ -369,8 +377,7 @@ export default function CookingScreen() {
             onPress={nextStep}
             disabled={currentStep === steps.length - 1}
           >
-            <Ionicons 
-              name="chevron-forward" 
+            <CaretRightIcon 
               size={24} 
               color={currentStep === steps.length - 1 ? Colors.gray[400] : Colors.primary} 
             />

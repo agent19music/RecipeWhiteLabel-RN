@@ -2,6 +2,7 @@ import { Colors } from '@/constants/Colors';
 import { Challenge } from '@/data/challenges';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { TrophyIcon, UsersIcon } from 'phosphor-react-native';
 import React from 'react';
 import {
     Dimensions,
@@ -84,11 +85,11 @@ export default function ChallengeCard({ challenge, onPress }: ChallengeCardProps
             </View>
             <View style={styles.statsRow}>
               <View style={styles.statPill}>
-                <Ionicons name="people" size={12} color={Colors.white} />
+                <UsersIcon size={12} color={Colors.white} />
                 <Text style={styles.statValue}>{formatNumber(challenge.participants)}</Text>
               </View>
               <View style={styles.statPill}>
-                <Ionicons name="trophy" size={12} color={Colors.white} />
+                <TrophyIcon  size={12} color={Colors.white} />
                 <Text style={styles.statValue}>{challenge.prize}</Text>
               </View>
             </View>

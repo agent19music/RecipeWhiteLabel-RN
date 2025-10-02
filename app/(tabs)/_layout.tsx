@@ -1,12 +1,10 @@
 import { HapticTab } from '@/components/HapticTab';
 import { Colors } from '@/constants/Colors';
 import { useTheme } from '@/theme';
-import { Ionicons } from '@expo/vector-icons';
-import Entypo from '@expo/vector-icons/Entypo';
-import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { Tabs } from 'expo-router';
 import React from 'react';
 import { Platform, View } from 'react-native';
+import {BasketIcon,HouseSimpleIcon,CalendarDotsIcon,UsersIcon,MagicWandIcon} from 'phosphor-react-native'   
 
 export default function TabLayout() {
   const { palette, isDark } = useTheme();
@@ -46,7 +44,7 @@ export default function TabLayout() {
           title: 'Home', 
           tabBarLabel: 'Home',
           tabBarIcon: ({ color, focused }) => (
-            <Entypo name="home" size={24} color={color} />
+            <HouseSimpleIcon size={24} color={color} />
           )
         }} 
       />
@@ -58,11 +56,7 @@ export default function TabLayout() {
           title: 'Community', 
           tabBarLabel: 'Community',
           tabBarIcon: ({ color, focused }) => (
-            <Ionicons 
-              name={focused ? "people" : "people-outline"} 
-              size={24} 
-              color={color} 
-            />
+            <UsersIcon size={24} color={color} />
           )
         }} 
       />
@@ -90,7 +84,7 @@ export default function TabLayout() {
               borderWidth: 3,
               borderColor: palette.bg,
             }}>
-              <MaterialIcons name="auto-awesome" size={28} color={Colors.white} />
+              <MagicWandIcon size={28} color={Colors.white} />
             </View>
           ),
         }} 
@@ -103,11 +97,7 @@ export default function TabLayout() {
           title: 'Pantry', 
           tabBarLabel: 'Pantry',
           tabBarIcon: ({ color, focused }) => (
-            <MaterialIcons 
-              name={focused ? "shopping-basket" : "shopping-basket"} 
-              size={24} 
-              color={color} 
-            />
+            <BasketIcon size={24} color={color} />
           )
         }} 
       />
@@ -119,11 +109,7 @@ export default function TabLayout() {
           title: 'Meal Plan', 
           tabBarLabel: 'Meal Plan',
           tabBarIcon: ({ color, focused }) => (
-            <Ionicons 
-              name={focused ? "calendar" : "calendar-outline"} 
-              size={24} 
-              color={color} 
-            />
+            <CalendarDotsIcon size={24} color={color} />
           )
         }} 
       />

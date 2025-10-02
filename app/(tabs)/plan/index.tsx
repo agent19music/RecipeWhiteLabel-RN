@@ -1,27 +1,27 @@
-import React, { useState, useEffect, useMemo } from 'react';
 import Dialog from '@/components/Dialog';
+import { Colors } from '@/constants/Colors';
+import { demoPlan, recipes } from '@/data/seed';
 import { useDialog } from '@/hooks/useDialog';
+import { useTheme } from '@/theme';
+import { track } from '@/utils/analytics';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { addDays, format, isSameDay, isToday, startOfWeek } from 'date-fns';
+import * as Haptics from 'expo-haptics';
+import { useRouter } from 'expo-router';
+import { SettingsIcon } from 'lucide-react-native';
+import { CheckCircleIcon, CircleIcon, CookieIcon, ForkKnifeIcon, GaugeIcon, MoonIcon, PintGlassIcon, SunHorizonIcon } from 'phosphor-react-native';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  Dimensions,
   Alert,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons, MaterialCommunityIcons, FontAwesome5 } from '@expo/vector-icons';
-import { Colors } from '@/constants/Colors';
-import { useRouter } from 'expo-router';
-import * as Haptics from 'expo-haptics';
-import { track } from '@/utils/analytics';
-import { format, addDays, startOfWeek, isToday, isSameDay } from 'date-fns';
-import { LinearGradient } from 'expo-linear-gradient';
-import { theme, useTheme } from '@/theme';
-import { demoPlan, recipes } from '@/data/seed';
 
-const { width } = Dimensions.get('window');
+
 
 // User Profile & Goals
 interface UserProfile {
@@ -229,14 +229,7 @@ export default function Planner() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   };
 
-  const getMealIcon = (type: MealType) => {
-    switch(type) {
-      case 'breakfast': return 'sunny';
-      case 'lunch': return 'restaurant';
-      case 'dinner': return 'moon';
-      case 'snack': return 'nutrition';
-    }
-  };
+
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: palette.bg }]} edges={['top']}>
@@ -248,93 +241,91 @@ export default function Planner() {
             <Text style={[styles.headerSubtitle, { color: palette.subtext }]}>Track nutrition & goals</Text>
           </View>
           <TouchableOpacity style={[styles.settingsButton, { backgroundColor: palette.surface }]}>
-            <Ionicons name="settings-outline" size={24} color={palette.text} />
+            <SettingsIcon size={24} color={palette.text} />
           </TouchableOpacity>
         </View>
 
         {/* Daily Progress Card */}
-        <View style={[styles.progressCard, { backgroundColor: '#ffffff', borderWidth: 1, borderColor: '#e0e0e0' }]}>
+        <View style={[styles.progressCard, { backgroundColor: palette.surface }]}>
           <View style={styles.progressHeader}>
-            <Text style={[styles.progressTitle, { color: '#1a1a1a' }]}>Today's Progress</Text>
-            <Text style={[styles.progressDate, { color: '#666666' }]}>{format(selectedDate, 'EEEE, MMM d')}</Text>
+            <Text style={[styles.progressTitle, { color: palette.text }]}>Today's Progress</Text>
+            <Text style={[styles.progressDate, { color: palette.subtext }]}>{format(selectedDate, 'EEEE, MMM d')}</Text>
           </View>
           
-          <View style={styles.calorieProgress}>
-            <View style={[styles.calorieCircle, { backgroundColor: '#f5f5f5', borderColor: '#e0e0e0' }]}>
-              <Text style={[styles.calorieNumber, { color: '#1a1a1a' }]}>{todayTotals?.calories || 0}</Text>
-              <Text style={[styles.calorieLabel, { color: '#666666' }]}>of {userProfile.dailyCalorieGoal}</Text>
-              <Text style={[styles.calorieUnit, { color: '#1a1a1a' }]}>calories</Text>
+          {/* Main Progress Row */}
+          <View style={styles.mainProgressRow}>
+            {/* Calories Circle */}
+            <View style={[styles.calorieCircle, { backgroundColor: palette.bg, borderColor: palette.border }]}>
+              <Text style={[styles.calorieNumber, { color: palette.text }]}>{todayTotals?.calories || 0}</Text>
+              <Text style={[styles.calorieLabel, { color: palette.subtext }]}>of {userProfile.dailyCalorieGoal}</Text>
+              <Text style={[styles.calorieUnit, { color: palette.text }]}>calories</Text>
             </View>
             
-            <View style={styles.macrosContainer}>
-              <View style={styles.macroItem}>
-                <View style={[styles.macroDot, { backgroundColor: '#FF6B6B' }]} />
-                <Text style={[styles.macroValue, { color: '#1a1a1a' }]}>{todayTotals?.protein || 0}g</Text>
-                <Text style={[styles.macroLabel, { color: '#666666' }]}>Protein</Text>
+            {/* Water Progress Circle */}
+            <TouchableOpacity 
+              style={[styles.waterCircle, { backgroundColor: palette.bg, borderColor: palette.border }]}
+              onPress={addWater}
+            >
+              <View style={styles.waterProgressRing}>
+                <View 
+                  style={[
+                    styles.waterProgressFill,
+                    {
+                      backgroundColor: Colors.water,
+                      height: `${((currentDayPlan?.waterIntake || 0) / userProfile.waterGoal) * 100}%`
+                    }
+                  ]}
+                />
               </View>
-              <View style={styles.macroItem}>
-                <View style={[styles.macroDot, { backgroundColor: '#4ECDC4' }]} />
-                <Text style={[styles.macroValue, { color: '#1a1a1a' }]}>{todayTotals?.carbs || 0}g</Text>
-                <Text style={[styles.macroLabel, { color: '#666666' }]}>Carbs</Text>
+              <View style={styles.waterContent}>
+                <PintGlassIcon size={24} color={Colors.water} />
+                <Text style={[styles.waterNumber, { color: palette.text }]}>{currentDayPlan?.waterIntake || 0}</Text>
+                <Text style={[styles.waterLabel, { color: palette.subtext }]}>of {userProfile.waterGoal}</Text>
               </View>
-              <View style={styles.macroItem}>
-                <View style={[styles.macroDot, { backgroundColor: '#FFD93D' }]} />
-                <Text style={[styles.macroValue, { color: '#1a1a1a' }]}>{todayTotals?.fat || 0}g</Text>
-                <Text style={[styles.macroLabel, { color: '#666666' }]}>Fat</Text>
-              </View>
+            </TouchableOpacity>
+          </View>
+
+          {/* Macros Row */}
+          <View style={styles.macrosRow}>
+            <View style={styles.macroCard}>
+              <View style={[styles.macroDot, { backgroundColor: '#FF6B6B' }]} />
+              <Text style={[styles.macroValue, { color: palette.text }]}>{todayTotals?.protein || 0}g</Text>
+              <Text style={[styles.macroLabel, { color: palette.subtext }]}>Protein</Text>
+            </View>
+            <View style={styles.macroCard}>
+              <View style={[styles.macroDot, { backgroundColor: '#4ECDC4' }]} />
+              <Text style={[styles.macroValue, { color: palette.text }]}>{todayTotals?.carbs || 0}g</Text>
+              <Text style={[styles.macroLabel, { color: palette.subtext }]}>Carbs</Text>
+            </View>
+            <View style={styles.macroCard}>
+              <View style={[styles.macroDot, { backgroundColor: '#FFD93D' }]} />
+              <Text style={[styles.macroValue, { color: palette.text }]}>{todayTotals?.fat || 0}g</Text>
+              <Text style={[styles.macroLabel, { color: palette.subtext }]}>Fat</Text>
             </View>
           </View>
 
-          {/* Progress Bar */}
+          {/* Calorie Progress Bar */}
           <View style={styles.progressBarContainer}>
-            <View style={[styles.progressBar, { backgroundColor: '#f0f0f0' }]}>
+            <Text style={[styles.progressBarLabel, { color: palette.subtext }]}>Calorie Goal Progress</Text>
+            <View style={[styles.progressBar, { backgroundColor: palette.bg }]}>
               <View 
                 style={[
                   styles.progressFill, 
                   { 
                     width: `${Math.min((todayTotals?.calories || 0) / userProfile.dailyCalorieGoal * 100, 100)}%`,
-                    backgroundColor: (todayTotals?.calories || 0) > userProfile.dailyCalorieGoal ? '#FFD93D' : '#4ECDC4'
+                    backgroundColor: (todayTotals?.calories || 0) > userProfile.dailyCalorieGoal ? '#FF6B6B' : '#4ECDC4'
                   }
                 ]} 
               />
             </View>
-            <Text style={[styles.progressPercentage, { color: '#1a1a1a' }]}>
+            <Text style={[styles.progressPercentage, { color: palette.text }]}>
               {Math.round((todayTotals?.calories || 0) / userProfile.dailyCalorieGoal * 100)}%
             </Text>
           </View>
         </View>
 
-        {/* Water Intake */}
-        <View style={styles.waterSection}>
-          <View style={styles.waterHeader}>
-            <View style={styles.waterTitle}>
-              <Ionicons name="water-outline" size={24} color={palette.primary} />
-              <Text style={[styles.sectionTitle, { color: palette.text }]}>Water Intake</Text>
-            </View>
-            <Text style={[styles.waterCount, { color: palette.subtext }]}>
-              {currentDayPlan?.waterIntake || 0} / {userProfile.waterGoal} glasses
-            </Text>
-          </View>
-          
-          <View style={styles.waterGlasses}>
-            {Array.from({ length: userProfile.waterGoal }).map((_, index) => (
-              <TouchableOpacity
-                key={index}
-                onPress={addWater}
-                disabled={index < (currentDayPlan?.waterIntake || 0)}
-              >
-                <Ionicons 
-                  name={index < (currentDayPlan?.waterIntake || 0) ? "water" : "water-outline"} 
-                  size={32} 
-                  color={index < (currentDayPlan?.waterIntake || 0) ? palette.primary : palette.border}
-                />
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
-
         {/* Week Overview */}
-        <View style={styles.weekSection}>
+        {/* <View style={styles.weekSection}>
           <Text style={[styles.sectionTitle, { color: palette.text }]}>Week Overview</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.weekScroll}>
             {weekPlans.map((plan, index) => {
@@ -373,129 +364,168 @@ export default function Planner() {
                     {dayTotals.calories}
                   </Text>
                   {plan.exercise && (
-                    <Ionicons name="fitness" size={16} color={palette.primary} />
+                    <GaugeIcon size={16} color={palette.primary} />
                   )}
                 </TouchableOpacity>
               );
             })}
           </ScrollView>
-        </View>
+        </View> */}
 
         {/* Today's Meals */}
         <View style={styles.mealsSection}>
-          <Text style={[styles.sectionTitle, { color: palette.text }]}>Today's Meals</Text>
-          {currentDayPlan?.meals.map(meal => (
-            <TouchableOpacity
-              key={meal.id}
-              style={[
-                styles.mealCard,
-                { backgroundColor: palette.surface },
-                meal.logged && styles.mealCardLogged
-              ]}
-              onPress={() => logMeal(meal.id)}
-            >
-              <View style={[styles.mealIcon, { backgroundColor: palette.bg }]}>
-                <Ionicons 
-                  name={getMealIcon(meal.type) as any} 
-                  size={24} 
-                  color={meal.logged ? Colors.success : palette.subtext} 
-                />
-              </View>
-              
-              <View style={styles.mealInfo}>
-                <Text style={[styles.mealType, { color: palette.subtext }]}>
-                  {meal.type.charAt(0).toUpperCase() + meal.type.slice(1)}
-                </Text>
-                <Text style={[styles.mealName, { color: palette.text }]}>{meal.name}</Text>
-                <View style={styles.mealMacros}>
-                  <Text style={[styles.mealMacro, { color: palette.subtext }]}>
-                    {meal.calories} cal • P: {meal.protein}g • C: {meal.carbs}g • F: {meal.fat}g
-                  </Text>
+          <View style={styles.sectionHeader}>
+            <Text style={[styles.sectionTitle, { color: palette.text }]}>Today&apos;s Meals</Text>
+            <Text style={[styles.sectionSubtitle, { color: palette.subtext }]}>
+              {currentDayPlan?.meals.filter(m => m.logged).length || 0} of {currentDayPlan?.meals.length || 0} logged
+            </Text>
+          </View>
+          
+          <View style={styles.mealsContainer}>
+            {currentDayPlan?.meals.map(meal => (
+              <TouchableOpacity
+                key={meal.id}
+                style={[
+                  styles.mealCard,
+                  { backgroundColor: palette.surface },
+                  meal.logged && [styles.mealCardLogged, { borderColor: Colors.success + '40' }]
+                ]}
+                onPress={() => logMeal(meal.id)}
+              >
+                <View style={styles.mealCardHeader}>
+                  <View style={styles.mealTitleRow}>
+                    <View style={[styles.mealIcon, { backgroundColor: meal.logged ? Colors.success + '20' : palette.bg }]}>
+                      {meal.type === 'breakfast' && (
+                        <SunHorizonIcon 
+                          size={20} 
+                          color={meal.logged ? Colors.success : palette.subtext} 
+                        />
+                      )}
+                      {meal.type === 'lunch' && (
+                        <ForkKnifeIcon 
+                          size={20} 
+                          color={meal.logged ? Colors.success : palette.subtext} 
+                        />
+                      )}
+                      {meal.type === 'dinner' && (
+                        <MoonIcon 
+                          size={20} 
+                          color={meal.logged ? Colors.success : palette.subtext} 
+                        />
+                      )}
+                      {meal.type === 'snack' && (
+                        <CookieIcon 
+                          size={20} 
+                          color={meal.logged ? Colors.success : palette.subtext} 
+                        />
+                      )}
+                    </View>
+                    
+                    <View style={styles.mealInfo}>
+                      <Text style={[styles.mealType, { color: palette.subtext }]}>
+                        {meal.type.charAt(0).toUpperCase() + meal.type.slice(1)} • {meal.time}
+                      </Text>
+                      <Text style={[styles.mealName, { color: palette.text }]}>{meal.name}</Text>
+                    </View>
+                    
+                    <View style={styles.mealStatus}>
+                      {meal.logged ? (
+                        <CheckCircleIcon size={24} color={Colors.success} />
+                      ) : (
+                        <CircleIcon size={24} color={palette.border} />
+                      )}
+                    </View>
+                  </View>
                 </View>
-              </View>
-              
-              <View style={styles.mealStatus}>
-                {meal.logged ? (
-                  <Ionicons name="checkmark-circle" size={28} color={Colors.success} />
-                ) : (
-                  <Ionicons name="circle-outline" size={28} color={palette.border} />
-                )}
-              </View>
-            </TouchableOpacity>
-          ))}
+                
+                <View style={styles.mealNutrition}>
+                  <View style={styles.nutritionItem}>
+                    <Text style={[styles.nutritionValue, { color: palette.text }]}>{meal.calories}</Text>
+                    <Text style={[styles.nutritionLabel, { color: palette.subtext }]}>cal</Text>
+                  </View>
+                  <View style={styles.nutritionItem}>
+                    <Text style={[styles.nutritionValue, { color: palette.text }]}>{meal.protein}g</Text>
+                    <Text style={[styles.nutritionLabel, { color: palette.subtext }]}>protein</Text>
+                  </View>
+                  <View style={styles.nutritionItem}>
+                    <Text style={[styles.nutritionValue, { color: palette.text }]}>{meal.carbs}g</Text>
+                    <Text style={[styles.nutritionLabel, { color: palette.subtext }]}>carbs</Text>
+                  </View>
+                  <View style={styles.nutritionItem}>
+                    <Text style={[styles.nutritionValue, { color: palette.text }]}>{meal.fat}g</Text>
+                    <Text style={[styles.nutritionLabel, { color: palette.subtext }]}>fat</Text>
+                  </View>
+                </View>
+              </TouchableOpacity>
+            ))}
+          </View>
         </View>
 
-        {/* Weekly Stats */}
+        {/* Weekly Summary */}
         <View style={styles.statsSection}>
-          <Text style={[styles.sectionTitle, { color: palette.text }]}>Weekly Stats</Text>
+          <View style={styles.sectionHeader}>
+            <Text style={[styles.sectionTitle, { color: palette.text }]}>Weekly Summary</Text>
+            <Text style={[styles.sectionSubtitle, { color: palette.subtext }]}>Last 7 days</Text>
+          </View>
           
           <View style={styles.statsGrid}>
             <View style={[styles.statCard, { backgroundColor: palette.surface }]}>
-              <Ionicons name="flame-outline" size={24} color={palette.primary} />
+              <View style={styles.statIconContainer}>
+                <GaugeIcon size={20} color={palette.primary} />
+              </View>
               <Text style={[styles.statValue, { color: palette.text }]}>{weeklyStats.avgCalories}</Text>
-              <Text style={[styles.statLabel, { color: palette.subtext }]}>Avg Daily Calories</Text>
+              <Text style={[styles.statLabel, { color: palette.subtext }]}>Avg Daily Cal</Text>
             </View>
             
             <View style={[styles.statCard, { backgroundColor: palette.surface }]}>
-              <Ionicons name="water-outline" size={24} color="#4ECDC4" />
+              <View style={styles.statIconContainer}>
+                <PintGlassIcon size={20} color={Colors.water} />
+              </View>
               <Text style={[styles.statValue, { color: palette.text }]}>{weeklyStats.avgWater}</Text>
               <Text style={[styles.statLabel, { color: palette.subtext }]}>Avg Water/Day</Text>
             </View>
             
             <View style={[styles.statCard, { backgroundColor: palette.surface }]}>
-              <Ionicons name="fitness-outline" size={24} color="#FF6B6B" />
+              <View style={styles.statIconContainer}>
+                <MaterialCommunityIcons name="fire" size={20} color="#FF6B6B" />
+              </View>
               <Text style={[styles.statValue, { color: palette.text }]}>{weeklyStats.exerciseDays}</Text>
-              <Text style={[styles.statLabel, { color: palette.subtext }]}>Exercise Days</Text>
-            </View>
-            
-            <View style={[styles.statCard, { backgroundColor: palette.surface }]}>
-              <Ionicons name="trending-down-outline" size={24} color="#FFD93D" />
-              <Text style={[styles.statValue, { color: palette.text }]}>
-                {weeklyStats.trend === 'deficit' ? '▼' : weeklyStats.trend === 'surplus' ? '▲' : '='}
-              </Text>
-              <Text style={[styles.statLabel, { color: palette.subtext }]}>Calorie Trend</Text>
+              <Text style={[styles.statLabel, { color: palette.subtext }]}>Active Days</Text>
             </View>
           </View>
         </View>
 
-        {/* Quick Actions */}
-        <View style={styles.quickActions}>
-          <TouchableOpacity style={styles.actionButton}>
-            <View style={[styles.actionGradient, { backgroundColor: '#ffffff', borderWidth: 1, borderColor: '#e0e0e0' }]}>
-              <Ionicons name="barcode-outline" size={24} color="#FF6B6B" />
-              <Text style={[styles.actionText, { color: '#1a1a1a' }]}>Scan Food</Text>
-            </View>
-          </TouchableOpacity>
-          
-          <TouchableOpacity 
-            style={styles.actionButton}
-            onPress={() => router.push('/(tabs)/ai-camera' as any)}
-          >
-            <View style={[styles.actionGradient, { backgroundColor: '#ffffff', borderWidth: 1, borderColor: '#e0e0e0' }]}>
-              <MaterialCommunityIcons name="robot" size={24} color="#667eea" />
-              <Text style={[styles.actionText, { color: '#1a1a1a' }]}>AI Recipe</Text>
-            </View>
-          </TouchableOpacity>
-        </View>
 
-        {/* Original Planner Content */}
-        <View style={styles.originalPlanner}>
-          <Text style={[styles.sectionTitle, { color: palette.text }]}>Recipe Plan</Text>
-          <Text style={{ color: palette.subtext, marginTop: theme.space.sm }}>Estimated weekly cost: KES {plan.totalEstimatedCostKES}</Text>
 
-          <View style={{ marginTop: theme.space.lg, gap: theme.space.md }}>
-            {plan.days.map((d) => (
-              <View key={d.date} style={{ borderWidth: 1, borderColor: palette.border, borderRadius: 12, padding: theme.space.md }}>
-                <Text style={{ color: palette.text, fontWeight: '700' }}>{d.date}</Text>
-                {d.meals.map((m, i) => {
-                  const rec = recipes.find(r => r.id === m.recipeId);
-                  return (
-                    <View key={i} style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: theme.space.xs }}>
-                      <Text style={{ color: palette.subtext }}>{m.mealType}</Text>
-                      <Text style={{ color: palette.text, fontWeight: '600' }}>{rec?.title}</Text>
-                    </View>
-                  );
-                })}
+        {/* Recipe Plan */}
+        <View style={styles.recipePlanSection}>
+          <View style={styles.sectionHeader}>
+            <Text style={[styles.sectionTitle, { color: palette.text }]}>Recipe Plan</Text>
+            <Text style={[styles.sectionSubtitle, { color: palette.subtext }]}>This week</Text>
+          </View>
+
+          <View style={styles.recipeDaysContainer}>
+            {plan.days.slice(0, 3).map((d) => (
+              <View key={d.date} style={[styles.recipeDayCard, { backgroundColor: palette.surface, borderColor: palette.border }]}>
+                <Text style={[styles.recipeDayDate, { color: palette.text }]}>{d.date}</Text>
+                <View style={styles.recipeMealsContainer}>
+                  {d.meals.slice(0, 2).map((m, i) => {
+                    const rec = recipes.find(r => r.id === m.recipeId);
+                    return (
+                      <View key={i} style={styles.recipeMealRow}>
+                        <Text style={[styles.recipeMealType, { color: palette.subtext }]}>
+                          {m.type || 'Meal'}
+                        </Text>
+                        <Text style={[styles.recipeMealName, { color: palette.text }]} numberOfLines={1}>
+                          {rec?.title || 'Recipe'}
+                        </Text>
+                      </View>
+                    );
+                  })}
+                  {d.meals.length > 2 && (
+                    <Text style={[styles.moreRecipes, { color: palette.subtext }]}>+{d.meals.length - 2} more</Text>
+                  )}
+                </View>
               </View>
             ))}
           </View>
@@ -545,95 +575,139 @@ const styles = StyleSheet.create({
   },
   progressCard: {
     marginHorizontal: 20,
-    marginBottom: 20,
+    marginBottom: 24,
     borderRadius: 20,
-    padding: 20,
+    padding: 24,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
   },
   progressHeader: {
-    marginBottom: 20,
+    marginBottom: 24,
   },
   progressTitle: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: '700',
-    color: '#fff',
   },
   progressDate: {
     fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.8)',
     marginTop: 4,
   },
-  calorieProgress: {
+  mainProgressRow: {
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 24,
   },
   calorieCircle: {
     width: 120,
     height: 120,
     borderRadius: 60,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 3,
-    borderColor: 'rgba(255, 255, 255, 0.5)',
+    borderWidth: 2,
   },
   calorieNumber: {
-    fontSize: 28,
+    fontSize: 26,
     fontWeight: '700',
-    color: '#fff',
   },
   calorieLabel: {
-    fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.8)',
+    fontSize: 11,
+    marginTop: 2,
   },
   calorieUnit: {
-    fontSize: 14,
-    color: '#fff',
+    fontSize: 13,
     fontWeight: '600',
+    marginTop: 2,
   },
-  macrosContainer: {
-    flex: 1,
-    marginLeft: 30,
-  },
-  macroItem: {
-    flexDirection: 'row',
+  waterCircle: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    borderWidth: 2,
+    justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 12,
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  waterProgressRing: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    top: 0,
+    borderRadius: 50,
+    overflow: 'hidden',
+  },
+  waterProgressFill: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    borderRadius: 50,
+    opacity: 0.2,
+  },
+  waterContent: {
+    alignItems: 'center',
+    zIndex: 1,
+  },
+  waterNumber: {
+    fontSize: 18,
+    fontWeight: '700',
+    marginTop: 4,
+  },
+  waterLabel: {
+    fontSize: 10,
+    marginTop: 2,
+  },
+  macrosRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 20,
+  },
+  macroCard: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: 12,
   },
   macroDot: {
     width: 8,
     height: 8,
     borderRadius: 4,
-    marginRight: 8,
+    marginBottom: 6,
   },
   macroValue: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#fff',
-    marginRight: 6,
+    marginBottom: 2,
   },
   macroLabel: {
-    fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.8)',
+    fontSize: 12,
   },
   progressBarContainer: {
-    marginTop: 20,
+    marginTop: 4,
+  },
+  progressBarLabel: {
+    fontSize: 12,
+    marginBottom: 8,
+    fontWeight: '500',
   },
   progressBar: {
-    height: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    borderRadius: 4,
+    height: 6,
+    borderRadius: 3,
     overflow: 'hidden',
   },
   progressFill: {
     height: '100%',
-    borderRadius: 4,
+    borderRadius: 3,
   },
   progressPercentage: {
     fontSize: 12,
-    color: '#fff',
-    marginTop: 8,
+    marginTop: 6,
     textAlign: 'right',
+    fontWeight: '600',
   },
   waterSection: {
     paddingHorizontal: 20,
@@ -706,21 +780,42 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     marginBottom: 24,
   },
-  mealCard: {
+  sectionHeader: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
+    marginBottom: 16,
+  },
+  sectionSubtitle: {
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  mealsContainer: {
+    gap: 12,
+  },
+  mealCard: {
     borderRadius: 16,
     padding: 16,
-    marginBottom: 12,
+    elevation: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
   },
   mealCardLogged: {
     borderWidth: 1,
-    borderColor: Colors.success + '30',
+  },
+  mealCardHeader: {
+    marginBottom: 12,
+  },
+  mealTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   mealIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
@@ -729,24 +824,38 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   mealType: {
-    fontSize: 12,
+    fontSize: 11,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
+    fontWeight: '500',
   },
   mealName: {
     fontSize: 16,
     fontWeight: '600',
-    marginVertical: 4,
-  },
-  mealMacros: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  mealMacro: {
-    fontSize: 12,
+    marginTop: 2,
   },
   mealStatus: {
     marginLeft: 12,
+  },
+  mealNutrition: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(0,0,0,0.05)',
+  },
+  nutritionItem: {
+    alignItems: 'center',
+  },
+  nutritionValue: {
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  nutritionLabel: {
+    fontSize: 10,
+    marginTop: 2,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   statsSection: {
     paddingHorizontal: 20,
@@ -754,51 +863,89 @@ const styles = StyleSheet.create({
   },
   statsGrid: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
     gap: 12,
   },
   statCard: {
     flex: 1,
-    minWidth: (width - 52) / 2,
     borderRadius: 16,
     padding: 16,
     alignItems: 'center',
+    elevation: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+  },
+  statIconContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(0,0,0,0.05)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 8,
   },
   statValue: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: '700',
-    marginVertical: 8,
+    marginBottom: 4,
   },
   statLabel: {
-    fontSize: 12,
+    fontSize: 11,
     textAlign: 'center',
+    fontWeight: '500',
   },
-  quickActions: {
-    flexDirection: 'row',
+  recipePlanSection: {
     paddingHorizontal: 20,
-    gap: 12,
     marginBottom: 24,
   },
-  actionButton: {
-    flex: 1,
+  recipeDaysContainer: {
+    gap: 12,
   },
-  actionGradient: {
-    paddingVertical: 16,
+  recipeDayCard: {
     borderRadius: 16,
-    alignItems: 'center',
+    padding: 16,
+    borderWidth: 1,
+    elevation: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+  },
+  recipeDayDate: {
+    fontSize: 16,
+    fontWeight: '700',
+    marginBottom: 12,
+  },
+  recipeMealsContainer: {
     gap: 8,
   },
-  actionText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#fff',
+  recipeMealRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
-  originalPlanner: {
-    paddingHorizontal: 20,
-    marginBottom: 24,
+  recipeMealType: {
+    fontSize: 11,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    fontWeight: '500',
+  },
+  recipeMealName: {
+    fontSize: 14,
+    fontWeight: '600',
+    flex: 1,
+    textAlign: 'right',
+    marginLeft: 12,
+  },
+  moreRecipes: {
+    fontSize: 11,
+    fontStyle: 'italic',
+    textAlign: 'center',
+    marginTop: 4,
   },
   bottomSpacing: {
-    height: 20,
+    height: 24,
   },
 });
 

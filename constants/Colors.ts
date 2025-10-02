@@ -34,6 +34,7 @@ export const Colors = {
   success: '#10B981',
   warning: '#F59E0B',
   error: '#EF4444',
+  water: '#4ECDC4',          // Nice blue for water elements
   
   // Tab bar colors
   tabBarBackground: '#FFFFFF',

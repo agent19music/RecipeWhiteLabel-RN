@@ -1,12 +1,27 @@
 import CookingStepper from '@/components/CookingStepper';
 import ModernButton from '@/components/ModernButton';
 import { Colors } from '@/constants/Colors';
-import { getRecipeById } from '@/data/enhanced-recipes';
 import { getCommunityRecipes } from '@/data/community-recipes';
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { getRecipeById } from '@/data/enhanced-recipes';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import {
+  ArrowLeft,
+  ArrowSquareOut,
+  CheckCircle,
+  ChefHat,
+  Clock,
+  Fire,
+  Gauge,
+  Heart,
+  Minus,
+  PlayCircle,
+  Plus,
+  ShareNetwork,
+  Star,
+  TiktokLogo
+} from 'phosphor-react-native';
 import React, { useEffect, useRef, useState } from 'react';
 import {
   Animated,
@@ -200,14 +215,14 @@ export default function RecipeDetailScreen() {
             style={styles.servingButton}
             onPress={() => adjustServings(false)}
           >
-            <Ionicons name="remove" size={20} color={Colors.primary} />
+            <Minus size={20} color={Colors.primary} />
           </TouchableOpacity>
           <Text style={styles.servingsNumber}>{servings}</Text>
           <TouchableOpacity 
             style={styles.servingButton}
             onPress={() => adjustServings(true)}
           >
-            <Ionicons name="add" size={20} color={Colors.primary} />
+            <Plus size={20} color={Colors.primary} />
           </TouchableOpacity>
         </View>
       </View>
@@ -250,7 +265,7 @@ export default function RecipeDetailScreen() {
                 <Text style={styles.ingredientCategory}>{category}</Text>
               </View>
               <TouchableOpacity style={styles.checkBox}>
-                <Ionicons name="checkmark-circle-outline" size={24} color={Colors.gray[400]} />
+                <CheckCircle size={24} color={Colors.gray[400]} />
               </TouchableOpacity>
             </Animated.View>
           );
@@ -370,7 +385,7 @@ export default function RecipeDetailScreen() {
           onPress={() => router.back()}
         >
           <BlurView intensity={80} tint="dark" style={styles.blurButton}>
-            <Ionicons name="arrow-back" size={24} color={Colors.white} />
+            <ArrowLeft size={24} color={Colors.white} />
           </BlurView>
         </TouchableOpacity>
         <View style={styles.headerRightButtons}>
@@ -379,16 +394,16 @@ export default function RecipeDetailScreen() {
             onPress={() => setIsFavorite(!isFavorite)}
           >
             <BlurView intensity={80} tint="dark" style={styles.blurButton}>
-              <Ionicons 
-                name={isFavorite ? "heart" : "heart-outline"} 
+              <Heart 
                 size={24} 
-                color={isFavorite ? Colors.error : Colors.white} 
+                color={isFavorite ? Colors.error : Colors.white}
+                weight={isFavorite ? "fill" : "regular"}
               />
             </BlurView>
           </TouchableOpacity>
           <TouchableOpacity style={styles.headerButton}>
             <BlurView intensity={80} tint="dark" style={styles.blurButton}>
-              <Ionicons name="share-outline" size={24} color={Colors.white} />
+              <ShareNetwork size={24} color={Colors.white} />
             </BlurView>
           </TouchableOpacity>
         </View>
@@ -423,7 +438,7 @@ export default function RecipeDetailScreen() {
               </View>
               {recipe.createdBy === 'community' && recipe.socialMedia && (
                 <View style={styles.socialBadge}>
-                  <MaterialCommunityIcons name="tiktok" size={14} color={Colors.white} />
+                  <TiktokLogo size={14} color={Colors.white} />
                   <Text style={styles.socialBadgeText}>Viral</Text>
                 </View>
               )}
@@ -436,7 +451,7 @@ export default function RecipeDetailScreen() {
               <View style={styles.creatorSection}>
                 <View style={styles.creatorInfo}>
                   <View style={styles.creatorAvatar}>
-                    <MaterialCommunityIcons name="chef-hat" size={20} color={Colors.primary} />
+                    <ChefHat size={20} color={Colors.primary} />
                   </View>
                   <View style={styles.creatorDetails}>
                     <Text style={styles.creatorName}>by {recipe.author}</Text>
@@ -473,17 +488,17 @@ export default function RecipeDetailScreen() {
             {/* Quick Stats */}
             <View style={styles.statsRow}>
               <View style={styles.statItem}>
-                <Ionicons name="time-outline" size={16} color={Colors.gray[600]} />
+                <Clock size={16} color={Colors.gray[600]} />
                 <Text style={styles.statText}>{recipe.details?.totalTime || recipe.minutes || 30} min</Text>
               </View>
               <View style={styles.statDivider} />
               <View style={styles.statItem}>
-                <Ionicons name="fitness-outline" size={16} color={Colors.gray[600]} />
+                <Gauge size={16} color={Colors.gray[600]} />
                 <Text style={styles.statText}>{recipe.details?.difficulty || recipe.difficulty || 'Medium'}</Text>
               </View>
               <View style={styles.statDivider} />
               <View style={styles.statItem}>
-                <Ionicons name="flame-outline" size={16} color={Colors.gray[600]} />
+                <Fire size={16} color={Colors.gray[600]} />
                 <Text style={styles.statText}>{recipe.nutrition?.calories || recipe.calories || '350'} cal</Text>
               </View>
             </View>
@@ -494,11 +509,11 @@ export default function RecipeDetailScreen() {
                 {[1, 2, 3, 4, 5].map((star) => {
                   const rating = recipe.details?.rating || recipe.rating || 4.5;
                   return (
-                    <Ionicons
+                    <Star
                       key={star}
-                      name={star <= Math.floor(rating) ? "star" : "star-outline"}
                       size={18}
                       color="#FFB800"
+                      weight={star <= Math.floor(rating) ? "fill" : "regular"}
                     />
                   );
                 })}
@@ -509,7 +524,7 @@ export default function RecipeDetailScreen() {
                 <>
                   <Text style={styles.socialDot}>•</Text>
                   <View style={styles.likesContainer}>
-                    <Ionicons name="heart" size={14} color={Colors.error} />
+                    <Heart size={14} color={Colors.error} weight="fill" />
                     <Text style={styles.likesText}>{recipe.socialMedia.likes}</Text>
                   </View>
                 </>
@@ -522,9 +537,9 @@ export default function RecipeDetailScreen() {
                 style={styles.videoLink}
                 onPress={() => Linking.openURL(recipe.videoUrl)}
               >
-                <MaterialCommunityIcons name="play-circle" size={20} color={Colors.primary} />
+                <PlayCircle size={20} color={Colors.primary} />
                 <Text style={styles.videoLinkText}>Watch Original Video</Text>
-                <Ionicons name="open-outline" size={16} color={Colors.primary} />
+                <ArrowSquareOut size={16} color={Colors.primary} />
               </TouchableOpacity>
             )}
           </Animated.View>
@@ -574,7 +589,7 @@ export default function RecipeDetailScreen() {
             onPress={handleStartCooking}
             variant="primary"
             size="large"
-            icon={<MaterialCommunityIcons name="chef-hat" size={24} color={Colors.white} />}
+            icon={<ChefHat size={24} color={Colors.white} />}
           />
         </View>
       )}

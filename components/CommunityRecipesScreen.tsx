@@ -6,10 +6,10 @@ import { Colors } from '@/constants/Colors';
 import { Challenge, ChallengeSubmission, getTrendingSubmissions } from '@/data/challenges';
 import { supabase } from '@/lib/supabase';
 import { track } from '@/utils/analytics';
-import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
+import { TrophyIcon } from 'phosphor-react-native';  
 import {
   Alert,
   Animated,
@@ -206,7 +206,7 @@ export default function CommunityRecipesScreen() {
           console.error('Vote error:', error);
         }
       } else {
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Success);
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
         // Refresh submissions
         if (activeChallenge) {
           await fetchTrendingSubmissions(activeChallenge.id.toString());
@@ -250,9 +250,9 @@ export default function CommunityRecipesScreen() {
         )}
 
         {/* No campaigns message */}
-        {!isLoadingCampaigns && !activeChallenge && (
+        {!isLoadingCampaigns && !activeChallenge && ( 
           <View style={styles.noCampaignsContainer}>
-            <Ionicons name="trophy-outline" size={48} color={Colors.text.secondary} />
+            <TrophyIcon size={48} color={Colors.text.secondary} />
             <Text style={styles.noCampaignsTitle}>No Active Challenges</Text>
             <Text style={styles.noCampaignsText}>Check back soon for exciting cooking competitions!</Text>
           </View>

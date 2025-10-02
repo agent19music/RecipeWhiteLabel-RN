@@ -23,6 +23,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {useDialog} from '@/hooks/useDialog';
+import { ImagesIcon, CheckCircleIcon,ImageIcon,CameraIcon, InfoIcon } from 'phosphor-react-native';
 
 
 interface SubmissionModalProps {
@@ -184,7 +185,7 @@ export default function SubmissionModal({
   const renderPhotosStep = () => (
     <View style={styles.stepContainer}>
       <View style={styles.stepHeader}>
-        <Text style={styles.stepTitle}>Show off your dish! 📸</Text>
+        <Text style={styles.stepTitle}>Show off your dish! </Text>
         <Text style={styles.stepDescription}>
           Add photos of your finished recipe. Great photos make your entry stand out!
         </Text>
@@ -203,14 +204,14 @@ export default function SubmissionModal({
               style={styles.removeImageButton}
               onPress={() => removeImage(index)}
             >
-              <Ionicons name="close-circle" size={24} color={Colors.white} />
+              <CheckCircleIcon size={24} color={Colors.white} />
             </TouchableOpacity>
           </View>
         ))}
         
         {images.length < 5 && (
           <TouchableOpacity style={styles.addImageButton} onPress={pickImage}>
-            <Ionicons name="camera" size={32} color={Colors.text.secondary} />
+            <ImageIcon size={32} color={Colors.text.secondary} />
             <Text style={styles.addImageText}>Add Photo</Text>
           </TouchableOpacity>
         )}
@@ -218,7 +219,7 @@ export default function SubmissionModal({
       
       {images.length === 0 && (
         <View style={styles.emptyStateContainer}>
-          <Ionicons name="camera-outline" size={48} color={Colors.text.tertiary} />
+          <ImagesIcon size={48} color={Colors.text.tertiary} />
           <Text style={styles.emptyStateText}>No photos added yet</Text>
           <Text style={styles.emptyStateSubtext}>Tap "Add Photo" to get started</Text>
         </View>
@@ -229,7 +230,7 @@ export default function SubmissionModal({
   const renderRecipeInfoStep = () => (
     <View style={styles.stepContainer}>
       <View style={styles.stepHeader}>
-        <Text style={styles.stepTitle}>Tell us about your recipe ✨</Text>
+        <Text style={styles.stepTitle}>Tell us about your recipe </Text>
         <Text style={styles.stepDescription}>
           Give your recipe a catchy name and describe what makes it special.
         </Text>
@@ -272,7 +273,7 @@ export default function SubmissionModal({
   const renderIngredientsStep = () => (
     <View style={styles.stepContainer}>
       <View style={styles.stepHeader}>
-        <Text style={styles.stepTitle}>List your ingredients 🥄</Text>
+        <Text style={styles.stepTitle}>List your ingredients </Text>
         <Text style={styles.stepDescription}>
           List each ingredient on a new line with quantities. Be specific!
         </Text>
@@ -283,7 +284,7 @@ export default function SubmissionModal({
           Ingredients <Text style={styles.required}>*</Text>
         </Text>
         <Text style={styles.inputHint}>
-          💡 Tip: Include quantities (e.g., "2 cups rice", "1 tsp salt")
+           Tip: Include quantities (e.g., "2 cups rice", "1 tsp salt")
         </Text>
         <TextInput
           style={[styles.input, styles.textArea, styles.ingredientsInput]}
@@ -301,7 +302,7 @@ export default function SubmissionModal({
   const renderInstructionsStep = () => (
     <View style={styles.stepContainer}>
       <View style={styles.stepHeader}>
-        <Text style={styles.stepTitle}>Cooking instructions 👨‍🍳</Text>
+        <Text style={styles.stepTitle}>Cooking instructions </Text>
         <Text style={styles.stepDescription}>
           Step-by-step instructions. Make it easy for others to follow!
         </Text>
@@ -312,7 +313,7 @@ export default function SubmissionModal({
           Cooking Steps <Text style={styles.required}>*</Text>
         </Text>
         <Text style={styles.inputHint}>
-          💡 Tip: Number your steps and include timing details
+           Tip: Number your steps and include timing details
         </Text>
         <TextInput
           style={[styles.input, styles.textArea, styles.instructionsInput]}
@@ -330,7 +331,7 @@ export default function SubmissionModal({
   const renderAdditionalInfoStep = () => (
     <View style={styles.stepContainer}>
       <View style={styles.stepHeader}>
-        <Text style={styles.stepTitle}>Final details 📋</Text>
+        <Text style={styles.stepTitle}>Final details </Text>
         <Text style={styles.stepDescription}>
           Optional information to help others plan their cooking.
         </Text>
@@ -364,7 +365,7 @@ export default function SubmissionModal({
       </View>
 
       <View style={styles.optionalInfoCard}>
-        <Ionicons name="information-circle" size={20} color={Colors.primary} />
+        <InfoIcon size={20} color={Colors.primary} />
         <Text style={styles.optionalInfoText}>
           These details are optional but help other cooks plan better!
         </Text>
@@ -375,7 +376,7 @@ export default function SubmissionModal({
   const renderReviewStep = () => (
     <View style={styles.stepContainer}>
       <View style={styles.stepHeader}>
-        <Text style={styles.stepTitle}>Review your submission 🎯</Text>
+        <Text style={styles.stepTitle}>Review your submission </Text>
         <Text style={styles.stepDescription}>
           Double-check everything looks good before submitting to the campaign.
         </Text>
@@ -598,7 +599,7 @@ export default function SubmissionModal({
 
     // Success!
       showSuccessDialog(
-        'Success! 🎉',
+        'Success! ',
         'Your recipe has been submitted to the challenge. Good luck!',
       );
 
